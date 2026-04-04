@@ -50,6 +50,33 @@ export interface VitalSignsData {
   disclaimer: string;
 }
 
+export interface SimulationState {
+  elapsedSeconds: number;
+  currentGaitFreqHz: number;
+  currentCadenceSpm: number;
+  currentBreathingBpm: number;
+  currentHeartRateBpm: number;
+  fatigueLevel: number;
+  signalNoiseLevel: string;
+  packetsGenerated: number;
+  treadmillSpeedKmh: number;
+  treadmillInclinePercent: number;
+  isRunning: boolean;
+  profile: {
+    name: string;
+    restingCadenceSpm: number;
+    maxCadenceSpm: number;
+    asymmetryBaseline: number;
+  };
+}
+
+export type DemoControlAction =
+  | 'set-profile'
+  | 'set-fatigue'
+  | 'set-noise'
+  | 'reset'
+  | 'start-protocol';
+
 export function useGatewaySocket() {
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
@@ -57,6 +84,7 @@ export function useGatewaySocket() {
   const [metrics, setMetrics] = useState<RealtimeMetrics | null>(null);
   const [inferredFrame, setInferredFrame] = useState<InferredMotionFrame | null>(null);
   const [vitalSigns, setVitalSigns] = useState<VitalSignsData | null>(null);
+  const [demoState, setDemoState] = useState<SimulationState | null>(null);
 
   useEffect(() => {
     const socket = io(`${GATEWAY_URL}/live`, {
@@ -85,6 +113,10 @@ export function useGatewaySocket() {
       setVitalSigns(data);
     });
 
+    socket.on('demo-state', (data: SimulationState) => {
+      setDemoState(data);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -97,5 +129,21 @@ export function useGatewaySocket() {
     [],
   );
 
-  return { connected, demoMode, metrics, inferredFrame, vitalSigns, setTreadmill };
+  const sendDemoControl = useCallback(
+    (action: DemoControlAction, payload?: Record<string, unknown>) => {
+      socketRef.current?.emit('demo-control', { action, payload });
+    },
+    [],
+  );
+
+  return {
+    connected,
+    demoMode,
+    metrics,
+    inferredFrame,
+    vitalSigns,
+    demoState,
+    setTreadmill,
+    sendDemoControl,
+  };
 }

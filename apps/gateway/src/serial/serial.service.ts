@@ -1,8 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional, Inject } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { parseCsiLine } from './serial.parser';
 import { BinaryFrameParser } from './binary-parser';
 import { CsiPacket } from './serial.types';
+import { DemoSimulatorService } from '../demo/demo-simulator.service';
 
 const SYNC_0 = 0xbe;
 const SYNC_1 = 0xef;
@@ -13,11 +14,17 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
   private port: any = null;
   private readonly packets$ = new Subject<CsiPacket>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private demoInterval: ReturnType<typeof setInterval> | null = null;
   private mode: 'unknown' | 'binary' | 'csv' = 'unknown';
   private binaryParser: BinaryFrameParser | null = null;
   private detectionBuf: number[] = [];
 
   readonly stream$ = this.packets$.asObservable();
+
+  constructor(
+    @Optional() @Inject(DemoSimulatorService)
+    private readonly demoSimulator?: DemoSimulatorService,
+  ) {}
 
   async onModuleInit() {
     const serialPath = process.env.SERIAL_PORT ?? '/dev/ttyUSB0';
@@ -25,8 +32,13 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
     const demoMode = process.env.DEMO_MODE === 'true';
 
     if (demoMode) {
-      this.logger.warn('DEMO_MODE enabled — generating synthetic CSI packets');
-      this.startDemoStream();
+      if (this.demoSimulator) {
+        this.logger.warn('DEMO_MODE enabled — using rich demo simulator');
+        this.startEnhancedDemoStream();
+      } else {
+        this.logger.warn('DEMO_MODE enabled — using basic synthetic CSI packets (fallback)');
+        this.startDemoStream();
+      }
       return;
     }
 
@@ -35,6 +47,7 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.demoInterval) clearInterval(this.demoInterval);
     if (this.port?.isOpen) {
       await new Promise<void>((resolve) => this.port.close(() => resolve()));
     }
@@ -140,6 +153,20 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Attempting serial reconnect...');
       this.connect(path, baudRate);
     }, 5000);
+  }
+
+  private startEnhancedDemoStream() {
+    const sampleRate = 100; // Hz
+    this.demoInterval = setInterval(() => {
+      const packet = this.demoSimulator!.generatePacket();
+      this.packets$.next(packet);
+    }, 1000 / sampleRate);
+
+    this.packets$.subscribe({
+      complete: () => {
+        if (this.demoInterval) clearInterval(this.demoInterval);
+      },
+    });
   }
 
   private startDemoStream() {

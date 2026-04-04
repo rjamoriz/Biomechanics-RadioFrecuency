@@ -11,6 +11,9 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { BackendClientModule } from './backend-client/backend-client.module';
 import { InferenceModule } from './inference/inference.module';
 import { HealthController } from './health/health.controller';
+import { DemoModule } from './demo/demo.module';
+
+const isDemoMode = process.env.DEMO_MODE === 'true';
 
 @Module({
   imports: [
@@ -25,6 +28,7 @@ import { HealthController } from './health/health.controller';
     WebsocketModule,
     BackendClientModule,
     InferenceModule,
+    ...(isDemoMode ? [DemoModule] : []),
   ],
   controllers: [HealthController],
 })

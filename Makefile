@@ -58,7 +58,13 @@ flash-tx:
 	cd firmware/tx_ap && idf.py build flash monitor
 
 demo:
-	DEMO_MODE=true $(MAKE) dev
+	@echo "==> Starting demo mode (gateway + web)"
+	DEMO_MODE=true $(MAKE) gateway &
+	$(MAKE) web &
+	@wait
+
+demo-gateway:
+	cd apps/gateway && DEMO_MODE=true npm run start:dev
 
 docker-build:
 	docker compose build

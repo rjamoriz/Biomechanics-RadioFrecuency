@@ -1,14 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
 import { InferredMotionFrame } from './pose.types';
+import { DemoPoseGenerator } from '../demo/demo-pose-generator';
 
 /**
  * Adapter for pose inference. In production, this calls a local Python service
- * or loads an ONNX model. For now, it returns mock inferred frames.
+ * or loads an ONNX model. In demo mode, it uses DemoPoseGenerator for animated
+ * phase-locked skeletons, falling back to a static mock if unavailable.
  */
 @Injectable()
 export class PoseInferenceAdapter {
   private readonly logger = new Logger(PoseInferenceAdapter.name);
   private frameIndex = 0;
+
+  constructor(
+    @Optional() @Inject(DemoPoseGenerator)
+    private readonly demoPoseGenerator?: DemoPoseGenerator,
+  ) {}
 
   async infer(featureWindow: number[][]): Promise<InferredMotionFrame | null> {
     const demoMode = process.env.DEMO_MODE === 'true';
@@ -16,6 +23,11 @@ export class PoseInferenceAdapter {
     if (!demoMode) {
       // TODO: call Python inference service or load ONNX model
       return null;
+    }
+
+    // Prefer rich animated demo if DemoPoseGenerator is available
+    if (this.demoPoseGenerator) {
+      return this.demoPoseGenerator.generate();
     }
 
     return this.generateDemoFrame(featureWindow);

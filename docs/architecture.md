@@ -126,6 +126,47 @@ For v1, proxy metrics and vital signs run in-process. Pose inference uses a mock
 | GET | `/api/v1/sensing/signal-quality` | Signal quality details |
 | GET | `/api/v1/sensing/status` | Sensing pipeline status summary |
 
+### REST Endpoints (Gateway — Demo Mode Only)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/demo/status` | Current simulation state |
+| POST | `/api/v1/demo/profile` | Switch athlete profile |
+| POST | `/api/v1/demo/protocol` | Start a treadmill protocol |
+| POST | `/api/v1/demo/fatigue` | Set fatigue rate (0–1) |
+| POST | `/api/v1/demo/noise` | Set signal noise level |
+| POST | `/api/v1/demo/reset` | Reset simulation to zero |
+| GET | `/api/v1/demo/profiles` | List available athlete profiles |
+| GET | `/api/v1/demo/protocols` | List available protocols |
+
+## Demo Simulation Mode
+
+For development and testing without physical ESP32 hardware, the gateway supports
+a full simulation mode activated by `DEMO_MODE=true`.
+
+```mermaid
+graph LR
+    subgraph DemoModule
+        DS[DemoSimulatorService] -->|synthetic CsiPacket| SP[SerialService.packets$]
+        DPG[DemoPoseGenerator] -->|animated skeleton| PA[PoseInferenceAdapter]
+        DC[DemoController] -->|REST control| DS
+    end
+    SP --> Pipeline[Normal Processing Pipeline]
+    PA --> WS[WebSocket]
+    Pipeline --> WS
+    WS --> UI[Web UI + DemoControlPanel]
+```
+
+Key characteristics:
+- **Injected via `@Optional()`** — production code has zero awareness of demo logic
+- **Physiological models** — gait, breathing, heart rate adapt to speed/incline/fatigue
+- **Three athlete profiles** — elite, recreational, rehab patient
+- **Three protocols** — progressive 5K, VO₂ max ramp, interval training
+- **Dual control** — REST API (`/api/v1/demo/*`) and WebSocket (`demo-control` events)
+- **Animated pose** — 17 COCO keypoints phase-locked to gait cycle
+
+See [docs/demo-mode.md](demo-mode.md) for full usage guide.
+
 ## Session Replay
 
 ```mermaid

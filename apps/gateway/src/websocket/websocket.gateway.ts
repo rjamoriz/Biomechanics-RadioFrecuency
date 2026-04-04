@@ -8,13 +8,19 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, Optional, Inject } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { RealtimeMetricsService } from '../metrics/realtime-metrics.service';
 import { PoseService } from '../pose/pose.service';
 import { TreadmillService } from '../treadmill/treadmill.service';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { SYNTHETIC_VIEW_DISCLAIMER } from '../pose/pose.types';
+import { DemoSimulatorService } from '../demo/demo-simulator.service';
+import {
+  ATHLETE_PROFILES,
+  DEMO_PROTOCOLS,
+  SignalNoiseLevel,
+} from '../demo/demo-simulator.types';
 import {
   WsRealtimeMetrics,
   WsInferredMotionFrame,
@@ -29,6 +35,7 @@ export class LiveGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(LiveGateway.name);
+  private demoStateInterval: ReturnType<typeof setInterval> | null = null;
 
   @WebSocketServer()
   server!: Server;
@@ -38,6 +45,8 @@ export class LiveGateway
     private readonly poseService: PoseService,
     private readonly treadmillService: TreadmillService,
     private readonly vitalSignsService: VitalSignsService,
+    @Optional() @Inject(DemoSimulatorService)
+    private readonly demoSimulator?: DemoSimulatorService,
   ) {}
 
   afterInit() {
@@ -105,6 +114,18 @@ export class LiveGateway
     }, 1000);
 
     this.logger.log('WebSocket /live gateway initialized');
+
+    // Emit demo state periodically when in demo mode
+    if (process.env.DEMO_MODE === 'true' && this.demoSimulator) {
+      this.demoStateInterval = setInterval(() => {
+        const state = this.demoSimulator!.getSimulationState();
+        this.server.emit('demo-state', {
+          event: 'demo-state',
+          ...state,
+          disclaimer: 'Demo mode — all data is synthetically generated.',
+        });
+      }, 2000);
+    }
   }
 
   handleConnection(client: Socket) {
@@ -159,5 +180,74 @@ export class LiveGateway
   handleStopProtocol() {
     this.treadmillService.stopProtocol();
     return { status: 'ok' };
+  }
+
+  @SubscribeMessage('demo-control')
+  handleDemoControl(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      action: 'set-profile' | 'set-fatigue' | 'set-noise' | 'reset' | 'start-protocol';
+      payload?: Record<string, unknown>;
+    },
+  ) {
+    if (!this.demoSimulator) {
+      return { status: 'error', message: 'Demo simulator not available' };
+    }
+
+    switch (data.action) {
+      case 'set-profile': {
+        const name = data.payload?.name as string | undefined;
+        if (name && ATHLETE_PROFILES[name]) {
+          this.demoSimulator.setProfile(ATHLETE_PROFILES[name]);
+          return { status: 'ok', profile: name };
+        }
+        return { status: 'error', message: `Unknown profile: ${name}` };
+      }
+
+      case 'set-fatigue': {
+        const rate = data.payload?.rate as number | undefined;
+        if (rate !== undefined) {
+          this.demoSimulator.setFatigueRate(rate);
+          return { status: 'ok', fatigueRate: rate };
+        }
+        return { status: 'error', message: 'Missing rate' };
+      }
+
+      case 'set-noise': {
+        const level = data.payload?.level as SignalNoiseLevel | undefined;
+        if (level) {
+          this.demoSimulator.setSignalNoise(level);
+          return { status: 'ok', noiseLevel: level };
+        }
+        return { status: 'error', message: 'Missing level' };
+      }
+
+      case 'start-protocol': {
+        const protocolName = data.payload?.name as string | undefined;
+        if (protocolName && DEMO_PROTOCOLS[protocolName]) {
+          const protocol = DEMO_PROTOCOLS[protocolName];
+          const stages = protocol.stages.map((s, i) => ({
+            orderIndex: i,
+            label: s.label,
+            durationSeconds: s.durationSeconds,
+            speedKph: s.speedKph,
+            inclinePercent: s.inclinePercent,
+          }));
+          this.treadmillService.startProtocol(protocol.name, stages);
+          return { status: 'ok', protocol: protocolName };
+        }
+        return { status: 'error', message: `Unknown protocol: ${protocolName}` };
+      }
+
+      case 'reset': {
+        this.demoSimulator.reset();
+        this.treadmillService.stopProtocol();
+        return { status: 'ok', message: 'Demo reset' };
+      }
+
+      default:
+        return { status: 'error', message: `Unknown action: ${data.action}` };
+    }
   }
 }

@@ -4,11 +4,21 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { SkeletonViewerCard } from '@/components/skeleton-viewer-card';
+import { DemoControlPanel } from '@/components/demo-control-panel';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
 import { Activity, Heart, Radio, Timer, Users, Wind } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { connected, demoMode, metrics, inferredFrame, vitalSigns } = useGatewaySocket();
+  const {
+    connected,
+    demoMode,
+    metrics,
+    inferredFrame,
+    vitalSigns,
+    demoState,
+    setTreadmill,
+    sendDemoControl,
+  } = useGatewaySocket();
 
   return (
     <div className="space-y-6">
@@ -22,6 +32,15 @@ export default function DashboardPage() {
           {demoMode && <Badge variant="warning">Demo Mode</Badge>}
         </div>
       </div>
+
+      {/* Demo Control Panel (only visible in demo mode) */}
+      {demoMode && (
+        <DemoControlPanel
+          demoState={demoState}
+          onDemoControl={sendDemoControl}
+          onSetTreadmill={setTreadmill}
+        />
+      )}
 
       {/* Quick stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

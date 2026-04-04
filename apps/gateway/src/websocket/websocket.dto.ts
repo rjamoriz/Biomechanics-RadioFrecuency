@@ -46,3 +46,25 @@ export interface WsConnectionAck {
   demoMode: boolean;
   timestamp: number;
 }
+
+export interface WsDemoState {
+  event: 'demo-state';
+  elapsedSeconds: number;
+  currentGaitFreqHz: number;
+  currentCadenceSpm: number;
+  currentBreathingBpm: number;
+  currentHeartRateBpm: number;
+  fatigueLevel: number;
+  signalNoiseLevel: string;
+  packetsGenerated: number;
+  treadmillSpeedKmh: number;
+  treadmillInclinePercent: number;
+  isRunning: boolean;
+  profile: {
+    name: string;
+    restingCadenceSpm: number;
+    maxCadenceSpm: number;
+    asymmetryBaseline: number;
+  };
+  disclaimer: string;
+}

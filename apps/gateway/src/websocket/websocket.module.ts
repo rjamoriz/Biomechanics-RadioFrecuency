@@ -5,8 +5,16 @@ import { PoseModule } from '../pose/pose.module';
 import { TreadmillModule } from '../treadmill/treadmill.module';
 import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 
+const isDemoMode = process.env.DEMO_MODE === 'true';
+
 @Module({
-  imports: [MetricsModule, PoseModule, TreadmillModule, VitalSignsModule],
+  imports: [
+    MetricsModule,
+    PoseModule,
+    TreadmillModule,
+    VitalSignsModule,
+    ...(isDemoMode ? [require('../demo/demo.module').DemoModule] : []),
+  ],
   providers: [LiveGateway],
 })
 export class WebsocketModule {}
