@@ -39,11 +39,11 @@ export default function DashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricTile
               label="Estimated Cadence"
-              value={`${metrics.estimatedCadenceSpm.toFixed(0)} SPM`}
+              value={`${metrics.estimatedCadence.toFixed(0)} SPM`}
             />
             <MetricTile
               label="Step Interval"
-              value={`${metrics.stepIntervalMs.toFixed(0)} ms`}
+              value={`${metrics.stepIntervalEstimate.toFixed(0)} ms`}
             />
             <MetricTile
               label="Symmetry Proxy"
@@ -54,9 +54,15 @@ export default function DashboardPage() {
               value={`${(metrics.fatigueDriftScore * 100).toFixed(1)}%`}
             />
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <ConfidenceIndicator value={metrics.metricConfidence} label="Metric Confidence" />
             <ConfidenceIndicator value={metrics.signalQualityScore} label="Signal Quality" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Validation</span>
+              <Badge variant={metrics.validationStatus === 'externally_validated' ? 'success' : 'warning'}>
+                {metrics.validationStatus}
+              </Badge>
+            </div>
           </div>
         </Card>
       )}

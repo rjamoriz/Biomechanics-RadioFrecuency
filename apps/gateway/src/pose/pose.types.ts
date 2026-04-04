@@ -16,12 +16,14 @@ export interface Joint3D {
 export interface InferredMotionFrame {
   timestamp: number;
   frameIndex: number;
-  keypoints2d: Keypoint2D[] | null;
-  joints3d: Joint3D[] | null;
-  overallConfidence: number;
+  keypoints2D: Keypoint2D[] | null;
+  joints3D: Joint3D[] | null;
+  confidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
   modelVersion: string;
   experimental: boolean;
-  signalQualityAtCapture: number;
+  signalQualityScore: number;
+  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
 }
 
 export type SyntheticViewType =

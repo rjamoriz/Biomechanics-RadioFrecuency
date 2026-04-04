@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Subject } from 'rxjs';
 import { EventBus } from '../ingestion/event-bus';
 import { CadenceEstimator } from './cadence-estimator';
 import { AsymmetryProxy } from './asymmetry-proxy';
@@ -10,18 +11,25 @@ import { ConfidenceService } from './confidence.service';
 export interface RealtimeMetrics {
   timestamp: number;
   estimatedCadence: number;
+  stepIntervalEstimate: number;
   symmetryProxy: number;
-  contactTimeProxyMs: number;
+  contactTimeProxy: number;
+  flightTimeProxy: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   packetRate: number;
   metricConfidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
 }
 
 @Injectable()
 export class RealtimeMetricsService implements OnModuleInit {
   private readonly logger = new Logger(RealtimeMetricsService.name);
+  private readonly metrics$ = new Subject<RealtimeMetrics>();
   private latestMetrics: RealtimeMetrics | null = null;
+
+  readonly stream$ = this.metrics$.asObservable();
 
   constructor(
     private readonly eventBus: EventBus,
@@ -53,21 +61,31 @@ export class RealtimeMetricsService implements OnModuleInit {
         this.fatigue.addCadence(cadenceVal);
         this.fatigue.addContactTime(contactTimeVal);
 
+        const conf = this.confidence.computeConfidence({
+          signalQuality: this.signalQuality.getSignalQualityScore(),
+          packetRate: this.signalQuality.getPacketRate(),
+          isCalibrated: false, // TODO: wire calibration state
+          metricStability: 1 - this.fatigue.getFatigueDriftScore(),
+        });
+
+        const stepInterval = cadenceVal > 0 ? 60000 / cadenceVal : 0;
+
         this.latestMetrics = {
           timestamp: Date.now(),
           estimatedCadence: cadenceVal,
+          stepIntervalEstimate: Math.round(stepInterval),
           symmetryProxy: Math.round(this.asymmetry.getSymmetryProxy() * 1000) / 1000,
-          contactTimeProxyMs: contactTimeVal,
+          contactTimeProxy: contactTimeVal,
+          flightTimeProxy: Math.max(0, Math.round(stepInterval - contactTimeVal)),
           fatigueDriftScore: Math.round(this.fatigue.getFatigueDriftScore() * 1000) / 1000,
           signalQualityScore: this.signalQuality.getSignalQualityScore(),
           packetRate: Math.round(this.signalQuality.getPacketRate()),
-          metricConfidence: this.confidence.computeConfidence({
-            signalQuality: this.signalQuality.getSignalQualityScore(),
-            packetRate: this.signalQuality.getPacketRate(),
-            isCalibrated: false, // TODO: wire calibration state
-            metricStability: 1 - this.fatigue.getFatigueDriftScore(),
-          }),
+          metricConfidence: conf,
+          confidenceLevel: conf >= 0.7 ? 'high' : conf >= 0.4 ? 'medium' : 'low',
+          validationStatus: 'unvalidated',
         };
+
+        this.metrics$.next(this.latestMetrics);
       }
     });
 

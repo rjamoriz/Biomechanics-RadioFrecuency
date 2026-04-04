@@ -4,27 +4,31 @@ export interface WsRealtimeMetrics {
   event: 'metrics';
   sessionId?: string;
   timestamp: number;
-  estimatedCadenceSpm: number;
-  stepIntervalMs: number;
+  estimatedCadence: number;
+  stepIntervalEstimate: number;
   symmetryProxy: number;
   contactTimeProxy: number;
   flightTimeProxy: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   metricConfidence: number;
-  treadmillSpeedKph: number;
-  treadmillInclinePercent: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  speedKmh: number;
+  inclinePercent: number;
 }
 
 export interface WsInferredMotionFrame {
   event: 'inferred-motion';
   sessionId?: string;
   timestamp: number;
-  keypoints2d: Array<{ name: string; x: number; y: number; confidence: number }>;
+  keypoints2D: Array<{ name: string; x: number; y: number; confidence: number }>;
   modelVersion: string;
   experimental: true;
-  frameConfidence: number;
-  signalQuality: number;
+  confidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  signalQualityScore: number;
+  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
   disclaimer: string;
 }
 

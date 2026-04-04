@@ -46,16 +46,18 @@ export class LiveGateway
       const payload: WsRealtimeMetrics = {
         event: 'metrics',
         timestamp: Date.now(),
-        estimatedCadenceSpm: metrics.estimatedCadenceSpm,
-        stepIntervalMs: metrics.stepIntervalMs,
+        estimatedCadence: metrics.estimatedCadence,
+        stepIntervalEstimate: metrics.stepIntervalEstimate,
         symmetryProxy: metrics.symmetryProxy,
         contactTimeProxy: metrics.contactTimeProxy,
         flightTimeProxy: metrics.flightTimeProxy,
         fatigueDriftScore: metrics.fatigueDriftScore,
         signalQualityScore: metrics.signalQualityScore,
         metricConfidence: metrics.metricConfidence,
-        treadmillSpeedKph: treadmill.speedKph,
-        treadmillInclinePercent: treadmill.inclinePercent,
+        confidenceLevel: metrics.confidenceLevel,
+        validationStatus: metrics.validationStatus,
+        speedKmh: treadmill.speedKph,
+        inclinePercent: treadmill.inclinePercent,
       };
 
       this.server.emit('metrics', payload);
@@ -66,16 +68,18 @@ export class LiveGateway
       const payload: WsInferredMotionFrame = {
         event: 'inferred-motion',
         timestamp: frame.timestamp,
-        keypoints2d: frame.keypoints2d.map((kp) => ({
+        keypoints2D: frame.keypoints2D?.map((kp) => ({
           name: kp.name,
           x: kp.x,
           y: kp.y,
           confidence: kp.confidence,
-        })),
+        })) ?? [],
         modelVersion: frame.modelVersion,
         experimental: true,
-        frameConfidence: frame.confidence,
-        signalQuality: frame.signalQuality,
+        confidence: frame.confidence,
+        confidenceLevel: frame.confidenceLevel,
+        signalQualityScore: frame.signalQualityScore,
+        validationStatus: frame.validationStatus ?? 'experimental',
         disclaimer: SYNTHETIC_VIEW_DISCLAIMER,
       };
 

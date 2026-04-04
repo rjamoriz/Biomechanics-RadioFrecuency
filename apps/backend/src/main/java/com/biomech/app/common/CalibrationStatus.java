@@ -4,6 +4,5 @@ public enum CalibrationStatus {
     NOT_CALIBRATED,
     IN_PROGRESS,
     CALIBRATED,
-    EXPIRED,
-    FAILED
+    EXPIRED
 }

@@ -27,7 +27,7 @@ export class PoseInferenceAdapter {
     const frame: InferredMotionFrame = {
       timestamp: Date.now(),
       frameIndex: this.frameIndex++,
-      keypoints2d: [
+      keypoints2D: [
         { name: 'head', x: 0.5, y: 0.1, confidence: 0.8 },
         { name: 'left_shoulder', x: 0.4, y: 0.25, confidence: 0.75 },
         { name: 'right_shoulder', x: 0.6, y: 0.25, confidence: 0.75 },
@@ -38,11 +38,13 @@ export class PoseInferenceAdapter {
         { name: 'left_ankle', x: 0.38, y: 0.9, confidence: 0.55 },
         { name: 'right_ankle', x: 0.62, y: 0.9, confidence: 0.55 },
       ],
-      joints3d: null,
-      overallConfidence: 0.65,
+      joints3D: null,
+      confidence: 0.65,
+      confidenceLevel: 'medium',
       modelVersion: 'demo-v0.1.0',
       experimental: true,
-      signalQualityAtCapture: 0.7,
+      signalQualityScore: 0.7,
+      validationStatus: 'experimental',
     };
 
     return frame;

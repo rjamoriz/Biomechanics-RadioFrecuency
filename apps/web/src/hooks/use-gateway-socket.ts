@@ -8,25 +8,29 @@ const GATEWAY_URL =
 
 export interface RealtimeMetrics {
   timestamp: number;
-  estimatedCadenceSpm: number;
-  stepIntervalMs: number;
+  estimatedCadence: number;
+  stepIntervalEstimate: number;
   symmetryProxy: number;
   contactTimeProxy: number;
   flightTimeProxy: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   metricConfidence: number;
-  treadmillSpeedKph: number;
-  treadmillInclinePercent: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  validationStatus: string;
+  speedKmh: number;
+  inclinePercent: number;
 }
 
 export interface InferredMotionFrame {
   timestamp: number;
-  keypoints2d: Array<{ name: string; x: number; y: number; confidence: number }>;
+  keypoints2D: Array<{ name: string; x: number; y: number; confidence: number }>;
   modelVersion: string;
   experimental: boolean;
-  frameConfidence: number;
-  signalQuality: number;
+  confidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  signalQualityScore: number;
+  validationStatus: string;
   disclaimer: string;
 }
 

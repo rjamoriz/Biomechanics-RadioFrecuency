@@ -29,7 +29,7 @@ export default function InferredMotionPage() {
               {/* Simple keypoint visualization — SVG stub */}
               <div className="relative mx-auto h-80 w-64 rounded-lg bg-slate-900">
                 <svg viewBox="0 0 1 1" className="h-full w-full">
-                  {inferredFrame.keypoints2d.map((kp, i) => (
+                  {inferredFrame.keypoints2D.map((kp, i) => (
                     <circle
                       key={kp.name}
                       cx={kp.x}
@@ -52,21 +52,21 @@ export default function InferredMotionPage() {
               </CardHeader>
               <div className="space-y-4">
                 <ConfidenceIndicator
-                  value={inferredFrame.frameConfidence}
+                  value={inferredFrame.confidence}
                   label="Frame Confidence"
                 />
                 <ConfidenceIndicator
-                  value={inferredFrame.signalQuality}
+                  value={inferredFrame.signalQualityScore}
                   label="Signal Quality"
                 />
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Validation Status</span>
-                  <ValidationBadge status="experimental" />
+                  <ValidationBadge status={inferredFrame.validationStatus as any} />
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500">Keypoints</span>
                   <span className="font-medium text-slate-900">
-                    {inferredFrame.keypoints2d.length}
+                    {inferredFrame.keypoints2D.length}
                   </span>
                 </div>
               </div>

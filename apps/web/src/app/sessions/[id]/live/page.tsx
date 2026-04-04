@@ -36,7 +36,7 @@ export default function LiveSessionPage() {
         ...prev,
         {
           t: Math.floor((Date.now() % 300_000) / 1000),
-          cadence: metrics.estimatedCadenceSpm,
+          cadence: metrics.estimatedCadence,
           symmetry: metrics.symmetryProxy * 100,
           fatigue: metrics.fatigueDriftScore * 100,
         },
@@ -61,15 +61,21 @@ export default function LiveSessionPage() {
       {metrics ? (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Estimated Cadence" value={`${metrics.estimatedCadenceSpm.toFixed(0)} SPM`} />
-            <MetricCard label="Step Interval" value={`${metrics.stepIntervalMs.toFixed(0)} ms`} />
+            <MetricCard label="Estimated Cadence" value={`${metrics.estimatedCadence.toFixed(0)} SPM`} />
+            <MetricCard label="Step Interval" value={`${metrics.stepIntervalEstimate.toFixed(0)} ms`} />
             <MetricCard label="Symmetry Proxy" value={`${(metrics.symmetryProxy * 100).toFixed(1)}%`} />
             <MetricCard label="Contact-Time Proxy" value={`${(metrics.contactTimeProxy * 100).toFixed(1)}%`} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-3">
             <ConfidenceIndicator value={metrics.metricConfidence} label="Metric Confidence" />
             <ConfidenceIndicator value={metrics.signalQualityScore} label="Signal Quality" />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Validation</span>
+              <Badge variant={metrics.validationStatus === 'externally_validated' ? 'success' : 'warning'}>
+                {metrics.validationStatus}
+              </Badge>
+            </div>
           </div>
 
           <Card>
@@ -99,11 +105,11 @@ export default function LiveSessionPage() {
             <div className="flex gap-8 text-sm">
               <div>
                 <span className="text-slate-500">Speed: </span>
-                <span className="font-semibold">{metrics.treadmillSpeedKph.toFixed(1)} km/h</span>
+                <span className="font-semibold">{metrics.speedKmh.toFixed(1)} km/h</span>
               </div>
               <div>
                 <span className="text-slate-500">Incline: </span>
-                <span className="font-semibold">{metrics.treadmillInclinePercent.toFixed(1)}%</span>
+                <span className="font-semibold">{metrics.inclinePercent.toFixed(1)}%</span>
               </div>
             </div>
           </Card>
