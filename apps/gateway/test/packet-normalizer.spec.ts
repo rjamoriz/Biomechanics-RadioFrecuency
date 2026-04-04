@@ -7,6 +7,7 @@ describe('normalizePacket', () => {
     rssi: -50,
     channel: 6,
     mac: 'AA:BB:CC:DD:EE:FF',
+    csiLength: 8,
     csiValues: [3, 4, 1, 0, -5, 12, 0, 0],
   };
 

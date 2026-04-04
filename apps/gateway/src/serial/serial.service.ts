@@ -1,7 +1,11 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { parseCsiLine } from './serial.parser';
+import { BinaryFrameParser } from './binary-parser';
 import { CsiPacket } from './serial.types';
+
+const SYNC_0 = 0xbe;
+const SYNC_1 = 0xef;
 
 @Injectable()
 export class SerialService implements OnModuleInit, OnModuleDestroy {
@@ -9,6 +13,9 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
   private port: any = null;
   private readonly packets$ = new Subject<CsiPacket>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private mode: 'unknown' | 'binary' | 'csv' = 'unknown';
+  private binaryParser: BinaryFrameParser | null = null;
+  private detectionBuf: number[] = [];
 
   readonly stream$ = this.packets$.asObservable();
 
@@ -38,12 +45,67 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
     try {
       const { SerialPort, ReadlineParser } = await import('serialport');
       this.port = new SerialPort({ path, baudRate, autoOpen: false });
-      const parser = this.port.pipe(new ReadlineParser({ delimiter: '\n' }));
 
-      parser.on('data', (line: string) => {
-        const result = parseCsiLine(line);
-        if (result.success && result.packet) {
-          this.packets$.next(result.packet);
+      /* Reset detection state on each connection */
+      this.mode = 'unknown';
+      this.binaryParser = null;
+      this.detectionBuf = [];
+
+      let csvParser: any = null;
+
+      /**
+       * Raw data handler — performs auto-detection on first bytes, then
+       * routes all subsequent data to the appropriate parser.
+       */
+      this.port.on('data', (chunk: Buffer) => {
+        if (this.mode === 'binary') {
+          const packets = this.binaryParser!.feed(chunk);
+          for (const pkt of packets) {
+            this.packets$.next(pkt);
+          }
+          return;
+        }
+
+        if (this.mode === 'csv') {
+          /* CSV mode already wired through ReadlineParser — nothing here */
+          return;
+        }
+
+        /* Auto-detection: buffer first 2 bytes */
+        for (let i = 0; i < chunk.length && this.detectionBuf.length < 2; i++) {
+          this.detectionBuf.push(chunk[i]);
+        }
+
+        if (this.detectionBuf.length >= 2) {
+          if (this.detectionBuf[0] === SYNC_0 && this.detectionBuf[1] === SYNC_1) {
+            this.mode = 'binary';
+            this.binaryParser = new BinaryFrameParser();
+            this.logger.log('Auto-detected BINARY frame mode (sync 0xBEEF)');
+
+            /* Feed the detection buffer + remainder of this chunk */
+            const initialBuf = Buffer.from(this.detectionBuf);
+            const allPackets = this.binaryParser.feed(Buffer.concat([initialBuf, chunk.subarray(this.detectionBuf.length)]));
+            for (const pkt of allPackets) {
+              this.packets$.next(pkt);
+            }
+          } else {
+            this.mode = 'csv';
+            this.logger.log('Auto-detected CSV text mode');
+
+            /* Wire up line-based parser for CSV */
+            csvParser = this.port.pipe(new ReadlineParser({ delimiter: '\n' }));
+            csvParser.on('data', (line: string) => {
+              const result = parseCsiLine(line);
+              if (result.success && result.packet) {
+                this.packets$.next(result.packet);
+              }
+            });
+
+            /* Re-emit buffered bytes as text to the readline parser isn't feasible,
+               but the ReadlineParser handles its own buffering from now on.
+               The first partial line (the detection bytes) will be picked up
+               naturally since ReadlineParser starts fresh. */
+          }
         }
       });
 

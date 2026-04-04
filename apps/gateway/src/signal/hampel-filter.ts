@@ -36,11 +36,18 @@ export class HampelFilter {
       const deviations = window.map((v) => Math.abs(v - median));
       const mad = this.median(deviations) * HampelFilter.MAD_SCALE;
 
-      if (mad > 0 && Math.abs(signal[i] - median) > threshold * mad) {
-        result[i] = median;
+      const deviation = Math.abs(signal[i] - median);
+      let isOutlier: boolean;
+      if (mad > 0) {
+        isOutlier = deviation > threshold * mad;
       } else {
-        result[i] = signal[i];
+        // MAD=0 (most neighbours identical): use mean absolute deviation as fallback
+        const meanDev =
+          deviations.reduce((a, b) => a + b, 0) / deviations.length;
+        isOutlier = meanDev > 0 && deviation > threshold * meanDev;
       }
+
+      result[i] = isOutlier ? median : signal[i];
     }
 
     return result;
@@ -66,7 +73,17 @@ export class HampelFilter {
       const deviations = window.map((v) => Math.abs(v - median));
       const mad = this.median(deviations) * HampelFilter.MAD_SCALE;
 
-      if (mad > 0 && Math.abs(signal[i] - median) > threshold * mad) {
+      const deviation = Math.abs(signal[i] - median);
+      let isOutlier: boolean;
+      if (mad > 0) {
+        isOutlier = deviation > threshold * mad;
+      } else {
+        const meanDev =
+          deviations.reduce((a, b) => a + b, 0) / deviations.length;
+        isOutlier = meanDev > 0 && deviation > threshold * meanDev;
+      }
+
+      if (isOutlier) {
         outliers.push(i);
       }
     }

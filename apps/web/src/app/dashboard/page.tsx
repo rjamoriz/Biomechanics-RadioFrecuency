@@ -3,11 +3,12 @@
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
+import { SkeletonViewerCard } from '@/components/skeleton-viewer-card';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
 import { Activity, Heart, Radio, Timer, Users, Wind } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { connected, demoMode, metrics, vitalSigns } = useGatewaySocket();
+  const { connected, demoMode, metrics, inferredFrame, vitalSigns } = useGatewaySocket();
 
   return (
     <div className="space-y-6">
@@ -122,6 +123,30 @@ export default function DashboardPage() {
             )}
           </div>
         </Card>
+      )}
+
+      {/* Inferred 3D Skeleton (when inference data is available) */}
+      {inferredFrame && (
+        <SkeletonViewerCard
+          keypoints={
+            inferredFrame.keypoints2D?.map((kp) => ({
+              x: kp.x,
+              y: kp.y,
+              z: 0,
+              confidence: kp.confidence,
+            })) ?? null
+          }
+          modelConfidence={inferredFrame.confidence}
+          signalQualityScore={inferredFrame.signalQualityScore}
+          validationStatus={
+            (inferredFrame.validationStatus as
+              | 'unvalidated'
+              | 'experimental'
+              | 'station-validated'
+              | 'externally-validated') ?? 'experimental'
+          }
+          experimental={inferredFrame.experimental}
+        />
       )}
     </div>
   );

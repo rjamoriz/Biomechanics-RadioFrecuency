@@ -9,6 +9,7 @@ import { PoseModule } from './pose/pose.module';
 import { TreadmillModule } from './treadmill/treadmill.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { BackendClientModule } from './backend-client/backend-client.module';
+import { InferenceModule } from './inference/inference.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -23,6 +24,7 @@ import { HealthController } from './health/health.controller';
     TreadmillModule,
     WebsocketModule,
     BackendClientModule,
+    InferenceModule,
   ],
   controllers: [HealthController],
 })

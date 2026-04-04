@@ -33,6 +33,14 @@ export function parseCsiLine(line: string): ParseResult {
     return { success: false, error: 'Invalid CSI value', raw: trimmed };
   }
 
+  if (csiValues.length !== csiLength) {
+    return {
+      success: false,
+      error: `CSI length mismatch: declared ${csiLength}, got ${csiValues.length}`,
+      raw: trimmed,
+    };
+  }
+
   const packet: CsiPacket = {
     timestamp,
     rssi,

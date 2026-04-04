@@ -2,10 +2,12 @@
  * ESP32 CSI Collector — Receiver Node
  *
  * Connects to the transmitter AP as a Wi-Fi station, registers the CSI
- * callback, and outputs parsed CSI data over serial in a stable format.
+ * callback, and outputs parsed CSI data over serial.
  *
- * Serial format:
- *   CSI,<timestamp_ms>,<rssi>,<channel>,<mac>,<csi_len>,<val1>,...,<valN>
+ * Output modes (compile-time):
+ *   CONFIG_BINARY_OUTPUT=1 (default) — Binary frame protocol (ADR-001)
+ *   CONFIG_BINARY_OUTPUT=0           — CSV text format:
+ *     CSI,<timestamp_ms>,<rssi>,<channel>,<mac>,<csi_len>,<val1>,...,<valN>
  *
  * Assumptions:
  * - Transmitter AP is broadcasting on the configured channel
@@ -22,8 +24,22 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
+#include "esp_timer.h"
+
+/* Default to binary output; set to 0 in sdkconfig to use CSV */
+#ifndef CONFIG_BINARY_OUTPUT
+#define CONFIG_BINARY_OUTPUT 1
+#endif
+
+#if CONFIG_BINARY_OUTPUT
+#include "binary_frame.h"
+static uint16_t s_sequence = 0;
+#endif
 
 static const char *TAG = "csi_collector";
+
+/* Heartbeat interval in milliseconds */
+#define HEARTBEAT_INTERVAL_MS 5000
 
 /* Wi-Fi credentials — set via sdkconfig / menuconfig */
 #define WIFI_SSID      CONFIG_WIFI_SSID
@@ -31,7 +47,7 @@ static const char *TAG = "csi_collector";
 
 /**
  * CSI callback — invoked each time a CSI frame is received.
- * Formats and prints the data to serial in the documented format.
+ * Outputs data via serial in binary frame or CSV format depending on config.
  */
 static void csi_callback(void *ctx, wifi_csi_info_t *info)
 {
@@ -45,6 +61,35 @@ static void csi_callback(void *ctx, wifi_csi_info_t *info)
     int len = info->len;
     int8_t *buf = (int8_t *)info->buf;
 
+#if CONFIG_BINARY_OUTPUT
+    frame_data_t frame;
+    memset(&frame, 0, sizeof(frame));
+    frame.frame_type = FRAME_TYPE_CSI;
+    frame.sequence = s_sequence++;
+    frame.timestamp_ms = timestamp;
+    frame.station_id[0] = info->mac[0];
+    frame.station_id[1] = info->mac[1];
+    frame.station_id[2] = info->mac[2];
+    frame.station_id[3] = info->mac[3];
+    frame.rssi = rssi;
+    frame.channel = channel;
+    frame.noise_floor = info->rx_ctrl.noise_floor;
+
+    /* Clamp subcarrier count to max supported */
+    int num_subcarriers = len / 2;
+    if (num_subcarriers > FRAME_MAX_SUBCARRIERS) {
+        num_subcarriers = FRAME_MAX_SUBCARRIERS;
+    }
+    frame.num_subcarriers = (uint8_t)num_subcarriers;
+    memcpy(frame.payload, buf, num_subcarriers * 2);
+
+    uint8_t out_buf[FRAME_MAX_SIZE];
+    size_t out_len = 0;
+    if (frame_pack(&frame, out_buf, &out_len) == 0) {
+        fwrite(out_buf, 1, out_len, stdout);
+        fflush(stdout);
+    }
+#else
     /* Format MAC address */
     char mac_str[18];
     snprintf(mac_str, sizeof(mac_str),
@@ -61,6 +106,7 @@ static void csi_callback(void *ctx, wifi_csi_info_t *info)
         printf(",%d", buf[i]);
     }
     printf("\n");
+#endif
 }
 
 /**
@@ -129,6 +175,32 @@ static void wifi_init_sta(void)
     ESP_LOGI(TAG, "CSI collector initialized — waiting for packets");
 }
 
+#if CONFIG_BINARY_OUTPUT
+/**
+ * Heartbeat task — sends periodic heartbeat frames to confirm link health.
+ */
+static void heartbeat_task(void *arg)
+{
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(HEARTBEAT_INTERVAL_MS));
+
+        frame_data_t frame;
+        memset(&frame, 0, sizeof(frame));
+        frame.frame_type = FRAME_TYPE_HEARTBEAT;
+        frame.sequence = s_sequence++;
+        frame.timestamp_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        frame.num_subcarriers = 0;
+
+        uint8_t out_buf[FRAME_HEADER_SIZE + FRAME_CRC_SIZE];
+        size_t out_len = 0;
+        if (frame_pack(&frame, out_buf, &out_len) == 0) {
+            fwrite(out_buf, 1, out_len, stdout);
+            fflush(stdout);
+        }
+    }
+}
+#endif
+
 void app_main(void)
 {
     /* Initialize NVS — required by Wi-Fi */
@@ -145,4 +217,12 @@ void app_main(void)
 
     /* Start Wi-Fi station with CSI */
     wifi_init_sta();
+
+#if CONFIG_BINARY_OUTPUT
+    ESP_LOGI(TAG, "Binary frame output enabled (ADR-001)");
+    /* Start heartbeat task */
+    xTaskCreate(heartbeat_task, "heartbeat", 2048, NULL, 3, NULL);
+#else
+    ESP_LOGI(TAG, "CSV text output enabled");
+#endif
 }
