@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biomech-ml"
+version = "0.1.0"
+description = "ML layer for treadmill biomechanics — proxy metric and pose inference models"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+dependencies = [
+    "torch>=2.1.0",
+    "numpy>=1.26.0",
+    "pandas>=2.1.0",
+    "scikit-learn>=1.3.0",
+    "onnx>=1.15.0",
+    "onnxruntime>=1.16.0",
+    "matplotlib>=3.8.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.10.0",
+    "ruff>=0.1.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.26.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100

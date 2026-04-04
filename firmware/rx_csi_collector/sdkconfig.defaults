@@ -1,0 +1,13 @@
+# Wi-Fi station config — connects to transmitter AP
+CONFIG_WIFI_SSID="BiomechTX"
+CONFIG_WIFI_PASSWORD="biomech2024"
+CONFIG_WIFI_CHANNEL=6
+
+# CSI collection
+CONFIG_CSI_ENABLE=y
+
+# Serial output baud rate
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=921600
+
+# Logging level
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y

@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.class
+*.jar
+*.war
+
+# Gradle
+.gradle/
+apps/backend/build/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+.eggs/
+
+# ML artifacts
+*.pt
+*.pth
+*.onnx
+*.pkl
+ml/wandb/
+ml/mlruns/
+
+# ESP-IDF
+firmware/**/build/
+firmware/**/sdkconfig
+firmware/**/sdkconfig.old
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Storage outputs (keep .gitkeep)
+storage/raw-csi/*
+storage/processed/*
+storage/models/*
+storage/reports/*
+storage/imports/*
+!storage/**/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# OS
+Thumbs.db
+
+.fake
