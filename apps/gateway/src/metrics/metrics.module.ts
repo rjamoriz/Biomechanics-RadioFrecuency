@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IngestionModule } from '../ingestion/ingestion.module';
+import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 import { RealtimeMetricsService } from './realtime-metrics.service';
 import { CadenceEstimator } from './cadence-estimator';
 import { AsymmetryProxy } from './asymmetry-proxy';
@@ -9,7 +10,7 @@ import { SignalQualityService } from './signal-quality.service';
 import { ConfidenceService } from './confidence.service';
 
 @Module({
-  imports: [IngestionModule],
+  imports: [IngestionModule, VitalSignsModule],
   providers: [
     RealtimeMetricsService,
     CadenceEstimator,

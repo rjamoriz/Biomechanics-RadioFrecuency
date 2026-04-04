@@ -34,12 +34,29 @@ export interface InferredMotionFrame {
   disclaimer: string;
 }
 
+export interface VitalEstimate {
+  estimatedBpm: number;
+  confidence: number;
+  subcarriersUsed: number;
+  label: string;
+  validationStatus: string;
+}
+
+export interface VitalSignsData {
+  timestamp: number;
+  breathing: VitalEstimate | null;
+  heartRate: VitalEstimate | null;
+  bufferFill: number;
+  disclaimer: string;
+}
+
 export function useGatewaySocket() {
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [metrics, setMetrics] = useState<RealtimeMetrics | null>(null);
   const [inferredFrame, setInferredFrame] = useState<InferredMotionFrame | null>(null);
+  const [vitalSigns, setVitalSigns] = useState<VitalSignsData | null>(null);
 
   useEffect(() => {
     const socket = io(`${GATEWAY_URL}/live`, {
@@ -64,6 +81,10 @@ export function useGatewaySocket() {
       setInferredFrame(data);
     });
 
+    socket.on('vital-signs', (data: VitalSignsData) => {
+      setVitalSigns(data);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -76,5 +97,5 @@ export function useGatewaySocket() {
     [],
   );
 
-  return { connected, demoMode, metrics, inferredFrame, setTreadmill };
+  return { connected, demoMode, metrics, inferredFrame, vitalSigns, setTreadmill };
 }

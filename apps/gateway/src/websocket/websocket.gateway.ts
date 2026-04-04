@@ -13,6 +13,7 @@ import { Server, Socket } from 'socket.io';
 import { RealtimeMetricsService } from '../metrics/realtime-metrics.service';
 import { PoseService } from '../pose/pose.service';
 import { TreadmillService } from '../treadmill/treadmill.service';
+import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { SYNTHETIC_VIEW_DISCLAIMER } from '../pose/pose.types';
 import {
   WsRealtimeMetrics,
@@ -36,6 +37,7 @@ export class LiveGateway
     private readonly metricsService: RealtimeMetricsService,
     private readonly poseService: PoseService,
     private readonly treadmillService: TreadmillService,
+    private readonly vitalSignsService: VitalSignsService,
   ) {}
 
   afterInit() {
@@ -85,6 +87,22 @@ export class LiveGateway
 
       this.server.emit('inferred-motion', payload);
     });
+
+    // Stream vital signs updates at ~1 Hz
+    setInterval(() => {
+      const vitals = this.vitalSignsService.getVitalSigns();
+      if (vitals.breathing || vitals.heartRate) {
+        this.server.emit('vital-signs', {
+          event: 'vital-signs',
+          timestamp: Date.now(),
+          breathing: vitals.breathing,
+          heartRate: vitals.heartRate,
+          bufferFill: vitals.bufferFill,
+          disclaimer:
+            'Estimated proxy metrics from Wi-Fi CSI. Not clinical-grade.',
+        });
+      }
+    }, 1000);
 
     this.logger.log('WebSocket /live gateway initialized');
   }

@@ -4,10 +4,10 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
-import { Activity, Radio, Timer, Users } from 'lucide-react';
+import { Activity, Heart, Radio, Timer, Users, Wind } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { connected, demoMode, metrics } = useGatewaySocket();
+  const { connected, demoMode, metrics, vitalSigns } = useGatewaySocket();
 
   return (
     <div className="space-y-6">
@@ -74,6 +74,53 @@ export default function DashboardPage() {
           <p className="mt-4 text-sm text-slate-500">
             No live data available. Start a session or enable demo mode.
           </p>
+        </Card>
+      )}
+
+      {/* Vital signs (experimental) */}
+      {vitalSigns && (vitalSigns.breathing || vitalSigns.heartRate) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CardTitle>Estimated Vital Signs</CardTitle>
+              <Badge variant="warning">Experimental</Badge>
+            </div>
+            <p className="text-xs text-slate-400">
+              Proxy metrics from Wi-Fi CSI phase analysis — not clinical-grade measurements.
+            </p>
+          </CardHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {vitalSigns.breathing && (
+              <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-4">
+                <Wind className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="text-xs text-blue-600">Estimated Breathing Rate</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {vitalSigns.breathing.estimatedBpm.toFixed(1)} BPM
+                  </p>
+                  <ConfidenceIndicator
+                    value={vitalSigns.breathing.confidence}
+                    label="Confidence"
+                  />
+                </div>
+              </div>
+            )}
+            {vitalSigns.heartRate && (
+              <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4">
+                <Heart className="h-8 w-8 text-red-500" />
+                <div>
+                  <p className="text-xs text-red-600">Estimated Heart Rate</p>
+                  <p className="text-2xl font-bold text-red-900">
+                    {vitalSigns.heartRate.estimatedBpm.toFixed(1)} BPM
+                  </p>
+                  <ConfidenceIndicator
+                    value={vitalSigns.heartRate.confidence}
+                    label="Confidence"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
       )}
     </div>

@@ -47,14 +47,27 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    CSI[Normalized CSI Frames] --> FE[Feature Extraction]
+    CSI[Normalized CSI Frames] --> SP[Signal Processing]
+    SP --> HF[Hampel Filter]
+    SP --> PU[Phase Unwrap + Detrend]
+    SP --> SC[Subcarrier Selection]
+    HF --> FE[Feature Extraction]
+    PU --> VS[Vital Signs Extraction]
+    SC --> FE
+    PU --> BVP[Body Velocity Profile]
+    VS --> BP[Bandpass + FFT → Breathing / Heart Rate]
     FE --> PM[Proxy Metric Models]
     FE --> PI[Pose Inference Adapter]
+    BVP --> PM
     PM --> MS[MetricSnapshot]
     PI --> MF[InferredMotionFrame]
+    BP --> VSS[VitalSignsSnapshot]
     MS --> WS[WebSocket]
     MF --> WS
+    VSS --> WS
     WS --> UI[Web UI]
+    MS --> REST[REST /api/v1/sensing/*]
+    VSS --> REST
 ```
 
 ## Service Boundaries
@@ -62,7 +75,7 @@ graph TD
 | Service | Responsibility | Does NOT own |
 |---------|---------------|--------------|
 | **firmware/** | CSI collection, serial output | Domain logic, persistence |
-| **apps/gateway/** | Ingestion, realtime metrics, WebSocket streaming | Long-term storage, auth |
+| **apps/gateway/** | Ingestion, signal processing, realtime metrics, vital signs, WebSocket streaming, REST API | Long-term storage, auth |
 | **apps/backend/** | Domain data, auth, persistence, validation, reports | Realtime processing, serial I/O |
 | **apps/web/** | UI, visualization, user interaction | Business rules, signal processing |
 | **ml/** | Training, evaluation, model export | Runtime serving (gateway handles inference) |
@@ -80,10 +93,38 @@ graph TD
 
 The gateway integrates inference via an adapter pattern:
 
+- **Signal processing**: Hampel filter, phase unwrapping, bandpass IIR, subcarrier selection, Body Velocity Profile — all in TypeScript
 - **Proxy metrics**: computed directly in TypeScript from CSI feature windows
+- **Vital signs**: breathing BPM and heart rate BPM estimated from CSI phase via FFT peak detection (experimental)
 - **Pose inference**: delegated to a Python service via HTTP or loaded as ONNX in Node.js
+- **REST API**: GET endpoints at `/api/v1/sensing/*` for polling access to latest metrics, vital signs, and signal quality
 
-For v1, proxy metrics run in-process. Pose inference uses a mock adapter that generates demo skeletal data, clearly marked as synthetic.
+For v1, proxy metrics and vital signs run in-process. Pose inference uses a mock adapter that generates demo skeletal data, clearly marked as synthetic.
+
+## API Surface
+
+### WebSocket Events (Socket.IO, namespace `/live`)
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `metrics` | server → client | Realtime proxy metrics at ~10 Hz |
+| `vital-signs` | server → client | Breathing + heart rate estimates at ~1 Hz |
+| `inferred-motion` | server → client | Inferred pose/skeleton frames |
+| `treadmill-state` | server → client | Treadmill speed/incline changes |
+| `connection-ack` | server → client | Connection acknowledgment with gateway version |
+| `set-treadmill` | client → server | Manual speed/incline update |
+| `start-protocol` | client → server | Start a treadmill protocol |
+| `stop-protocol` | client → server | Stop current protocol |
+
+### REST Endpoints (Gateway)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | System health check with pipeline status |
+| GET | `/api/v1/sensing/latest` | Latest metric snapshot |
+| GET | `/api/v1/sensing/vital-signs` | Breathing + heart rate estimates |
+| GET | `/api/v1/sensing/signal-quality` | Signal quality details |
+| GET | `/api/v1/sensing/status` | Sensing pipeline status summary |
 
 ## Session Replay
 

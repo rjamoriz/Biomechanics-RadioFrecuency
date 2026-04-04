@@ -7,6 +7,7 @@ import { ContactTimeProxy } from './contact-time-proxy';
 import { FatigueDrift } from './fatigue-drift';
 import { SignalQualityService } from './signal-quality.service';
 import { ConfidenceService } from './confidence.service';
+import { VitalSignsService } from '../vital-signs/vital-signs.service';
 
 export interface RealtimeMetrics {
   timestamp: number;
@@ -39,6 +40,7 @@ export class RealtimeMetricsService implements OnModuleInit {
     private readonly fatigue: FatigueDrift,
     private readonly signalQuality: SignalQualityService,
     private readonly confidence: ConfidenceService,
+    private readonly vitalSigns: VitalSignsService,
   ) {}
 
   onModuleInit() {
@@ -51,6 +53,11 @@ export class RealtimeMetricsService implements OnModuleInit {
       this.cadence.update(amplitudeMean);
       this.contactTime.addSample(amplitudeMean, packet.timestamp);
       this.signalQuality.addPacket(packet.rssi);
+
+      // Feed phase data to vital signs extraction
+      if (packet.phase.length > 0) {
+        this.vitalSigns.pushPhaseSnapshot(packet.phase);
+      }
 
       sampleCount++;
 

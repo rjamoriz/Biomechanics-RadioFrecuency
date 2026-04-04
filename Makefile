@@ -1,4 +1,4 @@
-.PHONY: setup dev lint format test db-up db-down web gateway backend ml flash-rx flash-tx demo clean
+.PHONY: setup dev lint format test db-up db-down web gateway backend ml flash-rx flash-tx demo clean docker-build docker-up docker-down health
 
 setup:
 	@echo "==> Copying .env.example to .env if missing"
@@ -59,6 +59,29 @@ flash-tx:
 
 demo:
 	DEMO_MODE=true $(MAKE) dev
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+health:
+	@echo "==> Gateway health"
+	@curl -s http://localhost:3001/health | python3 -m json.tool 2>/dev/null || echo "Gateway not reachable"
+	@echo "\n==> Backend health"
+	@curl -s http://localhost:8080/actuator/health | python3 -m json.tool 2>/dev/null || echo "Backend not reachable"
+
+sensing:
+	@echo "==> Latest sensing data"
+	@curl -s http://localhost:3001/api/v1/sensing/latest | python3 -m json.tool 2>/dev/null || echo "Gateway not reachable"
+
+vitals:
+	@echo "==> Vital signs estimates"
+	@curl -s http://localhost:3001/api/v1/sensing/vital-signs | python3 -m json.tool 2>/dev/null || echo "Gateway not reachable"
 
 clean:
 	rm -rf apps/web/.next apps/web/node_modules

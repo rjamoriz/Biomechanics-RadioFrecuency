@@ -82,20 +82,45 @@ export class SerialService implements OnModuleInit, OnModuleDestroy {
 
   private startDemoStream() {
     let seq = 0;
+    const sampleRate = 100; // Hz
+    // Physiological frequencies for realistic demo data
+    const gaitFreq = 2.8; // Hz (~168 SPM cadence)
+    const breathingFreq = 0.25; // Hz (~15 BPM)
+    const heartFreq = 1.2; // Hz (~72 BPM)
+    const numSubcarriers = 32;
+
     const interval = setInterval(() => {
-      const csiValues = Array.from({ length: 64 }, () =>
-        Math.round((Math.random() - 0.5) * 200),
-      );
+      const t = seq / sampleRate;
+      const csiValues: number[] = [];
+
+      for (let sc = 0; sc < numSubcarriers; sc++) {
+        const scPhase = (sc * Math.PI) / numSubcarriers;
+        // Phase encodes breathing + heart rate; amplitude encodes gait
+        const ampBase =
+          60 +
+          40 * Math.sin(2 * Math.PI * gaitFreq * t + scPhase) +
+          (Math.random() - 0.5) * 8;
+        const phaseVal =
+          Math.sin(2 * Math.PI * breathingFreq * t + scPhase * 0.3) * 0.5 +
+          Math.sin(2 * Math.PI * heartFreq * t + scPhase * 0.5) * 0.15 +
+          (Math.random() - 0.5) * 0.05;
+
+        // Convert amplitude + phase to I/Q pairs
+        const real = Math.round(ampBase * Math.cos(phaseVal));
+        const imag = Math.round(ampBase * Math.sin(phaseVal));
+        csiValues.push(real, imag);
+      }
+
       this.packets$.next({
         timestamp: Date.now(),
-        rssi: -45 + Math.round(Math.random() * 10),
+        rssi: -42 + Math.round(Math.sin(t * 0.01) * 3),
         channel: 6,
         mac: 'AA:BB:CC:DD:EE:FF',
-        csiLength: 64,
+        csiLength: numSubcarriers * 2,
         csiValues,
       });
       seq++;
-    }, 10); // ~100 Hz demo
+    }, 1000 / sampleRate);
 
     this.packets$.subscribe({
       complete: () => clearInterval(interval),
