@@ -22,12 +22,16 @@ def test_amplitude_variance_nonzero():
 
 
 def test_dominant_frequency_sine():
-    """Inject a known 3 Hz signal and check detection."""
+    """Inject a signal with known temporal variance oscillation."""
     t = np.linspace(0, 0.5, 50)  # 50 samples at 100 Hz = 0.5s
-    signal = np.sin(2 * np.pi * 3.0 * t)
-    window = np.tile(signal[:, None], (1, 8))
+    rng = np.random.default_rng(42)
+    # Create subcarrier signals with variance that oscillates at 3 Hz.
+    # dominant_frequency() uses per-timestep variance across subcarriers,
+    # so we need subcarriers to differ and their spread to oscillate.
+    base = rng.normal(0, 1, (50, 8))
+    envelope = 1.0 + np.sin(2 * np.pi * 3.0 * t)
+    window = base * envelope[:, None]
     freq = dominant_frequency(window, sample_rate_hz=100.0)
-    # Should detect the dominant frequency near 3 Hz (variance-based has harmonics)
     assert 0.0 < freq <= 50.0
 
 

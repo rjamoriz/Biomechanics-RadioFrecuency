@@ -1,5 +1,6 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional, Inject } from '@nestjs/common';
 import { InferredMotionFrame } from '../pose/pose.types';
+import { ModelRegistryService } from './model-registry.service';
 
 /** Shape metadata reported by the ONNX model. */
 export interface ModelInfo {
@@ -55,7 +56,10 @@ export class OnnxInferenceService implements OnModuleInit {
   private inputShape: number[] = [];
   private outputShape: number[] = [];
 
-  constructor() {
+  constructor(
+    @Optional() @Inject(ModelRegistryService)
+    private readonly modelRegistry?: ModelRegistryService,
+  ) {
     this.modelPath = process.env.ONNX_MODEL_PATH ?? 'storage/models/csi_pose_net.onnx';
   }
 
@@ -77,6 +81,16 @@ export class OnnxInferenceService implements OnModuleInit {
 
     try {
       const fs = await import('fs');
+
+      // If model registry is available, use its resolved model path
+      if (this.modelRegistry) {
+        const registryPath = this.modelRegistry.getActiveOnnxModelPath();
+        if (registryPath) {
+          this.modelPath = registryPath;
+          this.logger.log(`Using model from registry: ${registryPath}`);
+        }
+      }
+
       if (!fs.existsSync(this.modelPath)) {
         this.logger.warn(
           `ONNX model not found at ${this.modelPath} — inference disabled. ` +

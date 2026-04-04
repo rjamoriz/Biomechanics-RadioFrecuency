@@ -1,4 +1,4 @@
-.PHONY: setup dev lint format test db-up db-down web gateway backend ml flash-rx flash-tx demo clean docker-build docker-up docker-down health
+.PHONY: setup dev lint format test db-up db-down web gateway backend ml flash-rx flash-tx demo clean docker-build docker-up docker-down health download-models train-contrastive train-heads quantize benchmark-ml
 
 setup:
 	@echo "==> Copying .env.example to .env if missing"
@@ -88,6 +88,28 @@ sensing:
 vitals:
 	@echo "==> Vital signs estimates"
 	@curl -s http://localhost:3001/api/v1/sensing/vital-signs | python3 -m json.tool 2>/dev/null || echo "Gateway not reachable"
+
+# ── ML model targets ────────────────────────────────────────────── #
+
+download-models:
+	@echo "==> Downloading pre-trained models from HuggingFace"
+	cd ml && python -m biomech_ml.hub download
+
+train-contrastive:
+	@echo "==> Training contrastive encoder"
+	cd ml && python -m biomech_ml.train_contrastive --data-dir ../data --output-dir ../storage/models
+
+train-heads:
+	@echo "==> Training task heads on frozen encoder"
+	cd ml && python -m biomech_ml.train_heads --encoder ../storage/models/biomech-encoder.pt --data-dir ../data
+
+quantize:
+	@echo "==> Quantizing encoder for ESP32"
+	cd ml && python -m biomech_ml.quantize --model ../storage/models/biomech-encoder.pt --output ../storage/models/
+
+benchmark-ml:
+	@echo "==> Benchmarking inference speed"
+	cd ml && python -m biomech_ml.benchmark --model ../storage/models/biomech-encoder.pt
 
 clean:
 	rm -rf apps/web/.next apps/web/node_modules
