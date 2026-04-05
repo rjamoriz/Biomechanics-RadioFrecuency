@@ -12,6 +12,8 @@ import { BackendClientModule } from './backend-client/backend-client.module';
 import { InferenceModule } from './inference/inference.module';
 import { HealthController } from './health/health.controller';
 import { DemoModule } from './demo/demo.module';
+import { AutonomousModule } from './autonomous/autonomous.module';
+import { RecordingModule } from './recording/recording.module';
 
 const isDemoMode = process.env.DEMO_MODE === 'true';
 
@@ -28,6 +30,8 @@ const isDemoMode = process.env.DEMO_MODE === 'true';
     WebsocketModule,
     BackendClientModule,
     InferenceModule,
+    AutonomousModule,
+    RecordingModule,
     ...(isDemoMode ? [DemoModule] : []),
   ],
   controllers: [HealthController],

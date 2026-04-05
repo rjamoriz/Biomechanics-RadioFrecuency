@@ -74,11 +74,11 @@ graph TD
 
 | Service | Responsibility | Does NOT own |
 |---------|---------------|--------------|
-| **firmware/** | CSI collection, serial output | Domain logic, persistence |
-| **apps/gateway/** | Ingestion, signal processing, realtime metrics, vital signs, WebSocket streaming, REST API | Long-term storage, auth |
+| **firmware/** | CSI collection, serial output, OTA updates | Domain logic, persistence |
+| **apps/gateway/** | Ingestion, signal processing, realtime metrics, vital signs, autonomous edge intelligence, local recording, WebSocket streaming, REST API | Long-term storage, auth |
 | **apps/backend/** | Domain data, auth, persistence, validation, reports | Realtime processing, serial I/O |
 | **apps/web/** | UI, visualization, user interaction | Business rules, signal processing |
-| **ml/** | Training, evaluation, model export | Runtime serving (gateway handles inference) |
+| **ml/** | Training, evaluation, model export, quantization | Runtime serving (gateway handles inference) |
 
 ## Data Flow
 
@@ -179,3 +179,82 @@ graph LR
 ```
 
 Replay loads persisted metric series and optional inferred motion series from the backend, rendering them with confidence overlays and stage markers.
+
+## Autonomous Edge Intelligence
+
+```mermaid
+graph TD
+    CSI[Normalized CSI Frames] --> CM[Coherence Monitor]
+    CSI --> Metrics[Metric Estimators]
+    CM -->|coherence| SRE[Session Rule Engine]
+    Metrics -->|cadence, symmetry, contact time| GSC[Gait State Classifier]
+    Metrics -->|all features| SRE
+    GSC -->|gait state| SRE
+    CM -->|station quality| SHM[Station Health Monitor]
+    SRE -->|conclusions, alerts| WS2[WebSocket]
+    GSC -->|classification| WS2
+    SHM -->|health events| WS2
+    WS2 --> UI2[Web UI]
+```
+
+The gateway runs four autonomous edge modules adapted from quantum-inspired and
+autonomous systems research (RuView):
+
+### Coherence Monitor
+Maps CSI subcarrier phases onto a Bloch sphere representation. Computes aggregate
+coherence [0,1] and Von Neumann entropy. Detects environmental disturbances
+(person walking near station, door opening, equipment interference) via sudden
+entropy spikes (decoherence events). Feeds coherence into signal quality and the
+session rule engine.
+
+### Gait State Classifier
+Grover-inspired multi-hypothesis classifier that maintains 8 weighted gait states
+(idle, warming up, steady running, high intensity, fatiguing, form degrading,
+cooling down, resting). Uses oracle boost/dampen + diffusion reflection to converge
+on the most likely state from noisy CSI evidence. More robust than simple threshold
+classifiers because hypotheses compete via probability amplification.
+
+### Session Rule Engine
+Forward-chaining symbolic rule engine with 12 biomechanics-specific rules. Interprets
+CSI-derived metrics + coherence + gait state into autonomous conclusions and alerts
+(fatigue onset, form degradation, environmental interference, steady state, speed
+transition). Includes contradiction resolution for mutually exclusive conclusions.
+
+### Station Health Monitor
+Monitors health of multiple sensing stations (up to 8) using Stoer-Wagner min-cut
+on a quality-weighted graph. Detects degraded stations and triggers reconfiguration
+events. Hysteresis state machine prevents flapping between healthy and healing states.
+
+### WebSocket Events (Autonomous)
+
+| Event | Direction | Frequency | Description |
+|-------|-----------|-----------|-------------|
+| `autonomous-state` | server → client | ~2 Hz | Coherence, gait classification, rule conclusions |
+| `station-health` | server → client | ~1 Hz | Multi-station health and coverage |
+| `recording-status` | server → client | on change | Local recording start/stop status |
+| `start-recording` | client → server | manual | Begin local CSI capture |
+| `stop-recording` | client → server | manual | End local CSI capture |
+
+## Local CSI Recording
+
+The gateway supports offline recording of raw CSI frames to local disk in NDJSON
+(newline-delimited JSON) format. This enables session capture when the backend is
+unavailable and provides raw data for later analysis.
+
+Files are stored in `storage/captures/{session-id}/{timestamp}.ndjson` with automatic
+rotation at 10 MB or 60 seconds.
+
+## Firmware OTA Updates
+
+The ESP32 RX node supports over-the-air firmware updates via the ESP-IDF
+`esp_https_ota` API. Features:
+- Periodic update checks (default: every 6 hours)
+- Manual trigger via UART command `OTA:<url>`
+- SHA256 firmware verification
+- Progress reporting via serial heartbeat frames
+- Automatic rollback on boot failure
+
+## Pre-Trained Model Hub
+
+See [docs/models.md](models.md) for the contrastive encoder, task heads, LoRA
+station adapters, quantization pipeline, and HuggingFace integration.

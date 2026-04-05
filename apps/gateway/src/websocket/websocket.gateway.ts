@@ -16,6 +16,8 @@ import { TreadmillService } from '../treadmill/treadmill.service';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { SYNTHETIC_VIEW_DISCLAIMER } from '../pose/pose.types';
 import { DemoSimulatorService } from '../demo/demo-simulator.service';
+import { AutonomousService } from '../autonomous/autonomous.service';
+import { LocalRecorderService } from '../recording/local-recorder.service';
 import {
   ATHLETE_PROFILES,
   DEMO_PROTOCOLS,
@@ -25,6 +27,9 @@ import {
   WsRealtimeMetrics,
   WsInferredMotionFrame,
   WsConnectionAck,
+  WsAutonomousState,
+  WsStationHealth,
+  WsRecordingStatus,
 } from './websocket.dto';
 
 @WsGateway({
@@ -45,6 +50,8 @@ export class LiveGateway
     private readonly poseService: PoseService,
     private readonly treadmillService: TreadmillService,
     private readonly vitalSignsService: VitalSignsService,
+    private readonly autonomousService: AutonomousService,
+    private readonly recorderService: LocalRecorderService,
     @Optional() @Inject(DemoSimulatorService)
     private readonly demoSimulator?: DemoSimulatorService,
   ) {}
@@ -114,6 +121,43 @@ export class LiveGateway
     }, 1000);
 
     this.logger.log('WebSocket /live gateway initialized');
+
+    // Stream autonomous state events at ~2 Hz
+    this.autonomousService.autonomousEvents$.subscribe((evt) => {
+      const payload: WsAutonomousState = {
+        event: 'autonomous-state',
+        timestamp: evt.timestamp,
+        coherence: {
+          coherence: evt.coherence.coherence,
+          entropy: evt.coherence.entropy,
+          normalizedEntropy: evt.coherence.normalizedEntropy,
+          isDecoherenceEvent: evt.coherence.isDecoherenceEvent,
+          blochDrift: evt.coherence.blochDrift,
+        },
+        gaitClassification: {
+          winner: evt.gaitClassification.winner,
+          winnerProbability: evt.gaitClassification.winnerProbability,
+          isConverged: evt.gaitClassification.isConverged,
+        },
+        ruleConclusions: evt.ruleResult.conclusions,
+        disclaimer: evt.disclaimer,
+      };
+      this.server.emit('autonomous-state', payload);
+    });
+
+    // Stream station health at ~1 Hz
+    this.autonomousService.stationHealthEvents$.subscribe((evt) => {
+      const payload: WsStationHealth = {
+        event: 'station-health',
+        timestamp: evt.timestamp,
+        activeStations: evt.health.activeStations,
+        minCut: evt.health.minCut,
+        isHealing: evt.health.isHealing,
+        weakestStation: evt.health.weakestStation,
+        coverageScore: evt.health.coverageScore,
+      };
+      this.server.emit('station-health', payload);
+    });
 
     // Emit demo state periodically when in demo mode
     if (process.env.DEMO_MODE === 'true' && this.demoSimulator) {
@@ -249,5 +293,39 @@ export class LiveGateway
       default:
         return { status: 'error', message: `Unknown action: ${data.action}` };
     }
+  }
+
+  @SubscribeMessage('start-recording')
+  handleStartRecording(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { sessionId: string },
+  ) {
+    this.recorderService.startRecording(data.sessionId);
+    const summary = this.recorderService.getRecordingSummary();
+    const payload: WsRecordingStatus = {
+      event: 'recording-status',
+      timestamp: Date.now(),
+      isRecording: summary.isRecording,
+      sessionId: summary.sessionId,
+      framesRecorded: summary.framesRecorded,
+      filesWritten: summary.filesWritten,
+    };
+    this.server.emit('recording-status', payload);
+    return { status: 'ok', sessionId: data.sessionId };
+  }
+
+  @SubscribeMessage('stop-recording')
+  handleStopRecording() {
+    const summary = this.recorderService.stopRecording();
+    const payload: WsRecordingStatus = {
+      event: 'recording-status',
+      timestamp: Date.now(),
+      isRecording: false,
+      sessionId: summary.sessionId,
+      framesRecorded: summary.framesRecorded,
+      filesWritten: summary.filesWritten,
+    };
+    this.server.emit('recording-status', payload);
+    return { status: 'ok', summary };
   }
 }

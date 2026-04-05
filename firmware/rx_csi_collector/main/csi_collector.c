@@ -25,6 +25,7 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "esp_timer.h"
+#include "ota_update.h"
 
 /* Default to binary output; set to 0 in sdkconfig to use CSV */
 #ifndef CONFIG_BINARY_OUTPUT
@@ -225,4 +226,10 @@ void app_main(void)
 #else
     ESP_LOGI(TAG, "CSV text output enabled");
 #endif
+
+    /* Initialize OTA subsystem and start periodic check task */
+    ota_init();
+    xTaskCreate(ota_periodic_check_task, "ota_check", 8192, NULL, 2, NULL);
+    ESP_LOGI(TAG, "OTA periodic check task started (interval: %lu ms)",
+             (unsigned long)OTA_CHECK_INTERVAL_MS);
 }

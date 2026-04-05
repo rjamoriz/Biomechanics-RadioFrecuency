@@ -68,3 +68,46 @@ export interface WsDemoState {
   };
   disclaimer: string;
 }
+
+export interface WsAutonomousState {
+  event: 'autonomous-state';
+  timestamp: number;
+  coherence: {
+    coherence: number;
+    entropy: number;
+    normalizedEntropy: number;
+    isDecoherenceEvent: boolean;
+    blochDrift: number;
+  };
+  gaitClassification: {
+    winner: number;
+    winnerProbability: number;
+    isConverged: boolean;
+  };
+  ruleConclusions: Array<{
+    ruleId: number;
+    name: string;
+    confidence: number;
+    severity: 'info' | 'warning' | 'alert';
+  }>;
+  disclaimer: string;
+}
+
+export interface WsStationHealth {
+  event: 'station-health';
+  timestamp: number;
+  activeStations: number;
+  minCut: number;
+  isHealing: boolean;
+  weakestStation: string | null;
+  coverageScore: number;
+}
+
+export interface WsRecordingStatus {
+  event: 'recording-status';
+  timestamp: number;
+  isRecording: boolean;
+  sessionId: string | null;
+  framesRecorded: number;
+  filesWritten: number;
+}
