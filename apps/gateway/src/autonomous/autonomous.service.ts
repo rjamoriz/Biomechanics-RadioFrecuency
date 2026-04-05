@@ -18,11 +18,14 @@ import { CoherenceMonitor } from './coherence-monitor';
 import { GaitStateClassifier } from './gait-state-classifier';
 import { SessionRuleEngine } from './session-rule-engine';
 import { StationHealthMonitor } from './station-health-monitor';
+import { CoherenceGate, GateDecision } from '../signal/coherence-gate';
+import { PersistentFieldModel } from '../signal/field-model';
 import {
   AutonomousStateEvent,
   StationHealthEvent,
   SessionFeatures,
   GaitFeatures,
+  SignalLineEvent,
   AUTONOMOUS_DISCLAIMER,
 } from './autonomous.types';
 
@@ -46,6 +49,8 @@ export class AutonomousService implements OnModuleInit {
   private readonly gaitClassifier = new GaitStateClassifier();
   private readonly ruleEngine = new SessionRuleEngine();
   private readonly healthMonitor = new StationHealthMonitor();
+  private readonly coherenceGate = new CoherenceGate();
+  private readonly fieldModel = new PersistentFieldModel();
 
   private readonly tracker: FeatureTracker = {
     prevMotionEnergy: 0,
@@ -56,9 +61,13 @@ export class AutonomousService implements OnModuleInit {
 
   private readonly autonomousState$ = new Subject<AutonomousStateEvent>();
   private readonly stationHealth$ = new Subject<StationHealthEvent>();
+  private readonly signalLine$ = new Subject<SignalLineEvent>();
 
   readonly autonomousEvents$ = this.autonomousState$.asObservable();
   readonly stationHealthEvents$ = this.stationHealth$.asObservable();
+  readonly signalLineEvents$ = this.signalLine$.asObservable();
+
+  private lastGateDecision: GateDecision | null = null;
 
   private tickCount = 0;
 
@@ -74,6 +83,11 @@ export class AutonomousService implements OnModuleInit {
         this.coherenceMonitor.processFrame(packet.phase);
       }
 
+      // Feed amplitude to field model for baseline/drift tracking
+      if (packet.amplitude.length > 0) {
+        this.fieldModel.processFrame(packet.amplitude, Date.now());
+      }
+
       // Update station health with signal-derived quality
       const rssiQuality = Math.max(0, Math.min(1, (packet.rssi + 90) / 60));
       this.healthMonitor.updateStation(DEFAULT_STATION_ID, rssiQuality);
@@ -81,6 +95,25 @@ export class AutonomousService implements OnModuleInit {
 
     // Subscribe to metric stream (~10 Hz) for gait + rules
     this.metricsService.stream$.subscribe((metrics) => {
+      const coherence = this.coherenceMonitor.getState();
+
+      // Coherence gate: evaluate frame quality BEFORE metrics processing
+      const gateDecision = this.coherenceGate.evaluate(
+        coherence,
+        metrics.signalQualityScore,
+      );
+      this.lastGateDecision = gateDecision;
+
+      // If gate rejects, still track coherence but skip metric update
+      if (!gateDecision.accepted) {
+        this.tickCount++;
+        // Still emit signal line diagnostics at reduced rate
+        if (this.tickCount % 5 === 0) {
+          this.emitSignalLineDiagnostics();
+        }
+        return;
+      }
+
       const motionEnergy = this.estimateMotionEnergy(metrics.signalQualityScore, metrics.estimatedCadence);
       const now = Date.now();
 
@@ -149,6 +182,9 @@ export class AutonomousService implements OnModuleInit {
           ruleResult,
           disclaimer: AUTONOMOUS_DISCLAIMER,
         });
+
+        // Emit signal line diagnostics alongside autonomous state
+        this.emitSignalLineDiagnostics();
       }
 
       // Emit station health at ~1 Hz (every 10 ticks)
@@ -173,16 +209,32 @@ export class AutonomousService implements OnModuleInit {
     return this.healthMonitor.getState();
   }
 
+  getCoherenceGateDecision(): GateDecision | null {
+    return this.lastGateDecision;
+  }
+
+  getFieldModelSnapshot() {
+    return this.fieldModel.getSnapshot();
+  }
+
+  startFieldCalibration(): void {
+    this.fieldModel.startCalibration();
+    this.logger.log('Field model calibration started');
+  }
+
   reset(): void {
     this.coherenceMonitor.reset();
     this.gaitClassifier.reset();
     this.ruleEngine.reset();
     this.healthMonitor.reset();
+    this.coherenceGate.reset();
+    this.fieldModel.reset();
     this.tracker.prevMotionEnergy = 0;
     this.tracker.cadenceHistory = [];
     this.tracker.lastPresenceTime = Date.now();
     this.tracker.lowSignalStart = 0;
     this.tickCount = 0;
+    this.lastGateDecision = null;
   }
 
   // ─── Private helpers ──────────────────────────────────────────────
@@ -217,5 +269,20 @@ export class AutonomousService implements OnModuleInit {
     const firstHalf = h.slice(0, mid).reduce((a, b) => a + b, 0) / mid;
     const secondHalf = h.slice(mid).reduce((a, b) => a + b, 0) / (h.length - mid);
     return secondHalf < firstHalf * 0.95;
+  }
+
+  private emitSignalLineDiagnostics(): void {
+    const fieldSnapshot = this.fieldModel.getSnapshot();
+    this.signalLine$.next({
+      timestamp: Date.now(),
+      gateAcceptanceRate: this.coherenceGate.getAcceptanceRate(),
+      fieldModelState: fieldSnapshot.state,
+      fieldModelDriftScore: fieldSnapshot.driftScore,
+      fieldModelMotionEnergy: fieldSnapshot.motionEnergy,
+      fieldModelCalibrationAge: fieldSnapshot.calibrationAge,
+      pipelinePassRates: {},
+      throughputHz: 0,
+      disclaimer: AUTONOMOUS_DISCLAIMER,
+    });
   }
 }

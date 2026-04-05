@@ -139,3 +139,25 @@ export interface RecordingStatusEvent {
 
 export const AUTONOMOUS_DISCLAIMER =
   'Autonomous edge intelligence outputs are estimated proxy metrics inferred from Wi-Fi CSI. Not clinical-grade.';
+
+// ─── Re-exports for shared access ───────────────────────────────────
+
+export type { GateDecision } from '../signal/coherence-gate';
+export type { FresnelAnalysis, StationGeometry, FresnelZoneInfo } from '../signal/fresnel-zone';
+export type { FieldModelSnapshot, BaselineExport } from '../signal/field-model';
+export { FieldModelState } from '../signal/field-model';
+export type { PipelineReport, StageResult, PipelineStage } from '../signal/signal-line-protocol';
+
+// ─── Signal Line Event ──────────────────────────────────────────────
+
+export interface SignalLineEvent {
+  timestamp: number;
+  gateAcceptanceRate: number;
+  fieldModelState: string;
+  fieldModelDriftScore: number;
+  fieldModelMotionEnergy: number;
+  fieldModelCalibrationAge: number;
+  pipelinePassRates: Record<string, number>;
+  throughputHz: number;
+  disclaimer: string;
+}

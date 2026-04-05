@@ -111,3 +111,35 @@ export interface WsRecordingStatus {
   framesRecorded: number;
   filesWritten: number;
 }
+
+export interface WsSignalDiagnostics {
+  event: 'signal-diagnostics';
+  timestamp: number;
+  gateAcceptanceRate: number;
+  fieldModel: {
+    state: string;
+    driftScore: number;
+    motionEnergy: number;
+    calibrationAge: number;
+    presenceDetected: boolean;
+  };
+  pipelinePassRates: Record<string, number>;
+  throughputHz: number;
+  coherence: {
+    coherence: number;
+    normalizedEntropy: number;
+    isDecoherenceEvent: boolean;
+  };
+  disclaimer: string;
+}
+
+export interface WsFieldModelState {
+  event: 'field-model-state';
+  timestamp: number;
+  state: string;
+  baselineAge: number;
+  driftScore: number;
+  motionEnergy: number;
+  presenceDetected: boolean;
+  disclaimer: string;
+}

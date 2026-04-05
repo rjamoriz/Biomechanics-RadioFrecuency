@@ -30,6 +30,8 @@ import {
   WsAutonomousState,
   WsStationHealth,
   WsRecordingStatus,
+  WsSignalDiagnostics,
+  WsFieldModelState,
 } from './websocket.dto';
 
 @WsGateway({
@@ -157,6 +159,40 @@ export class LiveGateway
         coverageScore: evt.health.coverageScore,
       };
       this.server.emit('station-health', payload);
+    });
+
+    // Stream signal diagnostics at ~2 Hz (fires with autonomous events)
+    this.autonomousService.signalLineEvents$.subscribe((evt) => {
+      const fieldSnapshot = this.autonomousService.getFieldModelSnapshot();
+      const gateDecision = this.autonomousService.getCoherenceGateDecision();
+
+      const diagnostics: WsSignalDiagnostics = {
+        event: 'signal-diagnostics',
+        timestamp: evt.timestamp,
+        gateAcceptanceRate: evt.gateAcceptanceRate,
+        gateLastDecision: gateDecision
+          ? { accepted: gateDecision.accepted, reason: gateDecision.reason, score: gateDecision.score }
+          : undefined,
+        fieldModelState: fieldSnapshot.state,
+        fieldModelDriftScore: fieldSnapshot.driftScore,
+        fieldModelMotionEnergy: fieldSnapshot.motionEnergy,
+        fieldModelCalibrationAge: fieldSnapshot.calibrationAge,
+        pipelinePassRates: evt.pipelinePassRates,
+        throughputHz: evt.throughputHz,
+        disclaimer: evt.disclaimer,
+      };
+      this.server.emit('signal-diagnostics', diagnostics);
+
+      const fieldState: WsFieldModelState = {
+        event: 'field-model-state',
+        timestamp: evt.timestamp,
+        state: fieldSnapshot.state,
+        calibrationAge: fieldSnapshot.calibrationAge,
+        driftScore: fieldSnapshot.driftScore,
+        motionEnergy: fieldSnapshot.motionEnergy,
+        presenceDetected: fieldSnapshot.presenceDetected,
+      };
+      this.server.emit('field-model-state', fieldState);
     });
 
     // Emit demo state periodically when in demo mode
