@@ -73,4 +73,4 @@ playwright-report/
 # OS
 Thumbs.db
 
-.fake
+.fakeapps/web/package-lock.json

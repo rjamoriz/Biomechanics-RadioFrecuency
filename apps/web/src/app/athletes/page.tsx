@@ -1,26 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiFetch } from '@/lib/api';
+import { useAthletes } from '@/hooks/use-athletes';
 import { Users, Plus } from 'lucide-react';
 import Link from 'next/link';
 
-interface Athlete {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  sport: string;
-  active: boolean;
-}
-
 export default function AthletesPage() {
-  const { data: athletes, isLoading } = useQuery({
-    queryKey: ['athletes'],
-    queryFn: () => apiFetch<Athlete[]>('/athletes'),
-  });
+  const { data: athletes, isLoading } = useAthletes();
 
   return (
     <div className="space-y-6">

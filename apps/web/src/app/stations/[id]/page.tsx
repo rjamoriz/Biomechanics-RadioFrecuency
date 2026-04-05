@@ -1,30 +1,16 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiFetch } from '@/lib/api';
-
-interface StationDetail {
-  id: string;
-  name: string;
-  location: string;
-  description: string;
-  receiverMac: string;
-  transmitterMac: string;
-  calibrationStatus: string;
-  active: boolean;
-}
+import { Button } from '@/components/ui/button';
+import { useStation } from '@/hooks/use-stations';
+import { Pencil } from 'lucide-react';
+import Link from 'next/link';
 
 export default function StationDetailPage() {
   const params = useParams<{ id: string }>();
-
-  const { data: station, isLoading } = useQuery({
-    queryKey: ['stations', params.id],
-    queryFn: () => apiFetch<StationDetail>(`/stations/${params.id}`),
-    enabled: !!params.id,
-  });
+  const { data: station, isLoading } = useStation(params.id);
 
   if (isLoading) {
     return <p className="text-sm text-slate-500">Loading station...</p>;
@@ -37,9 +23,17 @@ export default function StationDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">{station.name}</h1>
-        <Badge variant={station.active ? 'success' : 'default'}>
-          {station.active ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Link href={`/stations/${params.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+          </Link>
+          <Badge variant={station.active ? 'success' : 'default'}>
+            {station.active ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

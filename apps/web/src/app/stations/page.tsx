@@ -1,19 +1,10 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiFetch } from '@/lib/api';
+import { useStations } from '@/hooks/use-stations';
 import { Radio, Plus } from 'lucide-react';
 import Link from 'next/link';
-
-interface Station {
-  id: string;
-  name: string;
-  location: string;
-  calibrationStatus: string;
-  active: boolean;
-}
 
 const calibrationVariant: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
   CALIBRATED: 'success',
@@ -24,10 +15,7 @@ const calibrationVariant: Record<string, 'success' | 'warning' | 'danger' | 'def
 };
 
 export default function StationsPage() {
-  const { data: stations, isLoading } = useQuery({
-    queryKey: ['stations'],
-    queryFn: () => apiFetch<Station[]>('/stations'),
-  });
+  const { data: stations, isLoading } = useStations();
 
   return (
     <div className="space-y-6">

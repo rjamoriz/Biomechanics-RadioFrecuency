@@ -1,33 +1,16 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { apiFetch } from '@/lib/api';
-
-interface AthleteDetail {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  sport: string;
-  birthYear: number | null;
-  heightCm: number | null;
-  weightKg: number | null;
-  shoeNotes: string | null;
-  notes: string | null;
-  active: boolean;
-}
+import { Button } from '@/components/ui/button';
+import { useAthlete } from '@/hooks/use-athletes';
+import { Pencil } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AthleteDetailPage() {
   const params = useParams<{ id: string }>();
-
-  const { data: athlete, isLoading } = useQuery({
-    queryKey: ['athletes', params.id],
-    queryFn: () => apiFetch<AthleteDetail>(`/athletes/${params.id}`),
-    enabled: !!params.id,
-  });
+  const { data: athlete, isLoading } = useAthlete(params.id);
 
   if (isLoading) {
     return <p className="text-sm text-slate-500">Loading athlete...</p>;
@@ -43,9 +26,17 @@ export default function AthleteDetailPage() {
         <h1 className="text-2xl font-bold text-slate-900">
           {athlete.firstName} {athlete.lastName}
         </h1>
-        <Badge variant={athlete.active ? 'success' : 'default'}>
-          {athlete.active ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Link href={`/athletes/${params.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+          </Link>
+          <Badge variant={athlete.active ? 'success' : 'default'}>
+            {athlete.active ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

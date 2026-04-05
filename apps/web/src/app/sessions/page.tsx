@@ -1,10 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ValidationBadge } from '@/components/ui/validation-badge';
-import { apiFetch } from '@/lib/api';
+import { useSessions } from '@/hooks/use-sessions';
 import { Timer, Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -29,10 +28,7 @@ const statusVariant: Record<string, 'success' | 'warning' | 'danger' | 'default'
 };
 
 export default function SessionsPage() {
-  const { data: sessions, isLoading } = useQuery({
-    queryKey: ['sessions'],
-    queryFn: () => apiFetch<SessionSummary[]>('/sessions'),
-  });
+  const { data: sessions, isLoading } = useSessions();
 
   return (
     <div className="space-y-6">
