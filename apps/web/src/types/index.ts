@@ -13,3 +13,21 @@ export type {
   ProtocolStageFormData,
 } from './protocol';
 export { protocolSchema, protocolStageSchema } from './protocol';
+
+export type {
+  ValidationReference,
+  ValidationComparison,
+  ValidationSummary,
+  ReferenceType,
+  ReferenceStatus,
+  ValidationStatus,
+  UploadReferencePayload,
+} from './validation';
+export {
+  validationReferenceSchema,
+  validationComparisonSchema,
+  validationSummarySchema,
+  referenceTypeEnum,
+  referenceStatusEnum,
+  validationStatusEnum,
+} from './validation';

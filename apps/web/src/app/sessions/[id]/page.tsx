@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ValidationBadge } from '@/components/ui/validation-badge';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { Activity, Play, Eye } from 'lucide-react';
+import { Activity, Play, Eye, ClipboardCheck } from 'lucide-react';
 
 interface SessionDetail {
   id: string;
@@ -69,6 +69,13 @@ export default function SessionDetailPage() {
             Inferred Motion
           </Link>
         )}
+        <Link
+          href={`/sessions/${params.id}/validation`}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          <ClipboardCheck className="h-4 w-4" />
+          Validation
+        </Link>
       </div>
 
       {/* Session info */}

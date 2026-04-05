@@ -8,6 +8,10 @@ import { ContactTimeProxy } from './contact-time-proxy';
 import { FatigueDrift } from './fatigue-drift';
 import { SignalQualityService } from './signal-quality.service';
 import { ConfidenceService } from './confidence.service';
+import { GroundContactDetector } from './ground-contact-detector';
+import { StrideLengthEstimator } from './stride-length-estimator';
+import { VerticalOscillationEstimator } from './vertical-oscillation-estimator';
+import { StepVariabilityCalculator } from './step-variability-calculator';
 
 @Module({
   imports: [IngestionModule, VitalSignsModule],
@@ -19,7 +23,18 @@ import { ConfidenceService } from './confidence.service';
     FatigueDrift,
     SignalQualityService,
     ConfidenceService,
+    GroundContactDetector,
+    StrideLengthEstimator,
+    VerticalOscillationEstimator,
+    StepVariabilityCalculator,
   ],
-  exports: [RealtimeMetricsService, SignalQualityService],
+  exports: [
+    RealtimeMetricsService,
+    SignalQualityService,
+    GroundContactDetector,
+    StrideLengthEstimator,
+    VerticalOscillationEstimator,
+    StepVariabilityCalculator,
+  ],
 })
 export class MetricsModule {}
