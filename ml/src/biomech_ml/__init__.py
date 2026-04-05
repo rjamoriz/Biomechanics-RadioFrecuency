@@ -23,3 +23,25 @@ from biomech_ml.biomechanics_report import (
     SymmetrySummary,
     FatigueIndicators,
 )
+from biomech_ml.temporal_model import (
+    CsiTemporalModel,
+    TemporalConfig,
+    create_temporal_model,
+    count_temporal_parameters,
+)
+from biomech_ml.train_temporal import (
+    TemporalTrainer,
+    TrainConfig,
+    SyntheticGaitDataset,
+    generate_synthetic_gait_data,
+)
+from biomech_ml.augmentation import (
+    time_warp,
+    noise_injection,
+    amplitude_scaling,
+    subcarrier_dropout,
+    mixup,
+    phase_shift,
+    CsiAugmentor,
+    AugmentorConfig,
+)

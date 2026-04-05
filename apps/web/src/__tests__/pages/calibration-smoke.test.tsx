@@ -40,6 +40,6 @@ describe('Calibration Page — smoke test', () => {
 
   it('shows calibration title', () => {
     renderWithProviders(<CalibrationPage />);
-    expect(screen.getByText(/calibration/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /calibration/i })).toBeInTheDocument();
   });
 });

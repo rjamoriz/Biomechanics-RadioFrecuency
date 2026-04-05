@@ -12,6 +12,9 @@ import { GroundContactDetector } from './ground-contact-detector';
 import { StrideLengthEstimator } from './stride-length-estimator';
 import { VerticalOscillationEstimator } from './vertical-oscillation-estimator';
 import { StepVariabilityCalculator } from './step-variability-calculator';
+import { BreathingRateEstimator } from './breathing-rate-estimator';
+import { FallDetector } from './fall-detector';
+import { GaitAnomalyDetector } from './gait-anomaly-detector';
 
 @Module({
   imports: [IngestionModule, VitalSignsModule],
@@ -27,6 +30,9 @@ import { StepVariabilityCalculator } from './step-variability-calculator';
     StrideLengthEstimator,
     VerticalOscillationEstimator,
     StepVariabilityCalculator,
+    BreathingRateEstimator,
+    FallDetector,
+    GaitAnomalyDetector,
   ],
   exports: [
     RealtimeMetricsService,
@@ -35,6 +41,9 @@ import { StepVariabilityCalculator } from './step-variability-calculator';
     StrideLengthEstimator,
     VerticalOscillationEstimator,
     StepVariabilityCalculator,
+    BreathingRateEstimator,
+    FallDetector,
+    GaitAnomalyDetector,
   ],
 })
 export class MetricsModule {}
