@@ -47,28 +47,30 @@ export default function ProtocolsPage() {
       {protocols && protocols.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {protocols.map((protocol) => (
-            <Card key={protocol.id} className="transition-shadow hover:shadow-md">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900">{protocol.name}</p>
-                  {protocol.description && (
-                    <p className="mt-1 text-sm text-slate-500 line-clamp-2">
-                      {protocol.description}
-                    </p>
-                  )}
+            <Link key={protocol.id} href={`/protocols/${protocol.id}`}>
+              <Card className="transition-shadow hover:shadow-md cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900">{protocol.name}</p>
+                    {protocol.description && (
+                      <p className="mt-1 text-sm text-slate-500 line-clamp-2">
+                        {protocol.description}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="outline">
+                    {protocol.stages.length} stage{protocol.stages.length !== 1 && 's'}
+                  </Badge>
                 </div>
-                <Badge variant="outline">
-                  {protocol.stages.length} stage{protocol.stages.length !== 1 && 's'}
-                </Badge>
-              </div>
-              <div className="mt-3 flex gap-3 text-xs text-slate-500">
-                <span>Total: {formatDuration(totalDuration(protocol.stages))}</span>
-                <span>
-                  Speed: {formatSpeed(Math.min(...protocol.stages.map((s) => s.speedKmh)))} –{' '}
-                  {formatSpeed(Math.max(...protocol.stages.map((s) => s.speedKmh)))}
-                </span>
-              </div>
-            </Card>
+                <div className="mt-3 flex gap-3 text-xs text-slate-500">
+                  <span>Total: {formatDuration(totalDuration(protocol.stages))}</span>
+                  <span>
+                    Speed: {formatSpeed(Math.min(...protocol.stages.map((s) => s.speedKmh)))} –{' '}
+                    {formatSpeed(Math.max(...protocol.stages.map((s) => s.speedKmh)))}
+                  </span>
+                </div>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
