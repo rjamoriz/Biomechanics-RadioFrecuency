@@ -32,6 +32,10 @@ import {
   WsRecordingStatus,
   WsSignalDiagnostics,
   WsFieldModelState,
+  WsAoAEstimate,
+  WsMultiChannelState,
+  WsFusedMetrics,
+  WsAdaptiveClassification,
 } from './websocket.dto';
 
 @WsGateway({

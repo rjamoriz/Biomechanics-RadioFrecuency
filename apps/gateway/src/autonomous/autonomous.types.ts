@@ -147,6 +147,10 @@ export type { FresnelAnalysis, StationGeometry, FresnelZoneInfo } from '../signa
 export type { FieldModelSnapshot, BaselineExport } from '../signal/field-model';
 export { FieldModelState } from '../signal/field-model';
 export type { PipelineReport, StageResult, PipelineStage } from '../signal/signal-line-protocol';
+export type { AoAEstimate, SpotFiConfig } from '../signal/spotfi-aoa';
+export type { FusedMetrics, StationObservation } from '../signal/cross-viewpoint-fusion';
+export type { AdaptiveClassification, AthleteProfile, AdaptiveClassifierConfig } from '../signal/adaptive-classifier';
+export type { MultiChannelState, ChannelStats, MultiChannelFusedFrame, ChannelObservation } from '../signal/multi-channel';
 
 // ─── Signal Line Event ──────────────────────────────────────────────
 

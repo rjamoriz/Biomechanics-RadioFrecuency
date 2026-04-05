@@ -143,3 +143,67 @@ export interface WsFieldModelState {
   presenceDetected: boolean;
   disclaimer: string;
 }
+
+// ─── New RuView-Inspired Event DTOs ─────────────────────────────────
+
+export interface WsAoAEstimate {
+  event: 'aoa-estimate';
+  timestamp: number;
+  dominantAngleDeg: number;
+  phaseSlope: number;
+  pathLengthDelta: number;
+  lateralDisplacement: number;
+  confidence: number;
+  aoaChangeRate: number;
+  disclaimer: string;
+}
+
+export interface WsMultiChannelState {
+  event: 'multi-channel-state';
+  timestamp: number;
+  channels: Array<{
+    channel: number;
+    signalQuality: number;
+    packetRate: number;
+    isActive: boolean;
+  }>;
+  bestChannel: number | null;
+  diversityScore: number;
+  isMultiChannel: boolean;
+  totalPacketRate: number;
+  disclaimer: string;
+}
+
+export interface WsFusedMetrics {
+  event: 'fused-metrics';
+  timestamp: number;
+  estimatedCadence: number;
+  stepIntervalEstimate: number;
+  symmetryProxy: number;
+  contactTimeProxy: number;
+  flightTimeProxy: number;
+  fatigueDriftScore: number;
+  signalQualityScore: number;
+  consensusConfidence: number;
+  metricAgreement: Record<string, number>;
+  stationWeights: Record<string, number>;
+  stationCount: number;
+  outlierStations: string[];
+  disclaimer: string;
+}
+
+export interface WsAdaptiveClassification {
+  event: 'adaptive-classification';
+  timestamp: number;
+  baselineEstablished: boolean;
+  warmupProgress: number;
+  overallAnomalyScore: number;
+  deviations: Record<string, {
+    zScore: number;
+    percentile: number;
+    isAnomaly: boolean;
+    direction: 'above' | 'below' | 'normal';
+  }>;
+  sessionDrift: Record<string, number>;
+  disclaimer: string;
+}
