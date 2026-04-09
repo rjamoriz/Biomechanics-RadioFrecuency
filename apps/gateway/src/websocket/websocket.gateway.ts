@@ -175,7 +175,7 @@ export class LiveGateway
         timestamp: evt.timestamp,
         gateAcceptanceRate: evt.gateAcceptanceRate,
         gateLastDecision: gateDecision
-          ? { accepted: gateDecision.accepted, reason: gateDecision.reason, score: gateDecision.score }
+          ? { accepted: gateDecision.accepted, reason: gateDecision.reason, score: gateDecision.gateScore }
           : undefined,
         fieldModelState: fieldSnapshot.state,
         fieldModelDriftScore: fieldSnapshot.driftScore,

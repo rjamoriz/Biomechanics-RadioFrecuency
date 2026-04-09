@@ -1,15 +1,14 @@
-# ── Build stage ──
-FROM eclipse-temurin:21-jdk-alpine AS build
+# Build stage — use official Gradle image (no local wrapper needed)
+FROM gradle:8.5-jdk21-alpine AS build
 WORKDIR /app
 
-COPY gradle/ gradle/
-COPY gradlew build.gradle settings.gradle ./
-RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
+COPY build.gradle.kts settings.gradle.kts ./
+RUN gradle dependencies --no-daemon || true
 
 COPY src/ src/
-RUN ./gradlew bootJar --no-daemon -x test
+RUN gradle bootJar --no-daemon -x test
 
-# ── Runtime stage ──
+# Runtime stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
@@ -19,5 +18,4 @@ USER biomech
 COPY --from=build /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "app.jar"]

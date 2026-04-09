@@ -64,7 +64,7 @@ export default function SessionsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold text-slate-900">
-                      {session.athleteFirstName} {session.athleteLastName}
+                      {session.athleteName}
                     </p>
                     <p className="text-sm text-slate-500">
                       Station: {session.stationName}

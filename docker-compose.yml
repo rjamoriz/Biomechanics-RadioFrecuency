@@ -25,7 +25,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/biomech
       SPRING_DATASOURCE_USERNAME: biomech
       SPRING_DATASOURCE_PASSWORD: biomech
-      JWT_SECRET: change-me-in-production
+      SPRING_FLYWAY_ENABLED: "true"
+      JWT_SECRET: ${JWT_SECRET:-biomech-dev-secret-key-must-be-at-least-32-bytes-long}
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,7 +40,7 @@ services:
     environment:
       BACKEND_URL: http://backend:8080
       DEMO_MODE: "true"
-      GATEWAY_PORT: 3001
+      GATEWAY_PORT: "3001"
     depends_on:
       - backend
 
@@ -47,11 +48,11 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+        NEXT_PUBLIC_WS_URL: ws://localhost:3001
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
-      NEXT_PUBLIC_WS_URL: ws://localhost:3001
     depends_on:
       - backend
       - gateway

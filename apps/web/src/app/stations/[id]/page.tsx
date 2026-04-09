@@ -43,7 +43,7 @@ export default function StationDetailPage() {
           </CardHeader>
           <dl className="space-y-3 text-sm">
             <Field label="Location" value={station.location} />
-            <Field label="Description" value={station.description || '—'} />
+            <Field label="Treadmill Model" value={station.treadmillModel || '—'} />
             <Field label="Calibration Status" value={station.calibrationStatus.replace(/_/g, ' ')} />
           </dl>
         </Card>
@@ -53,8 +53,8 @@ export default function StationDetailPage() {
             <CardTitle>Hardware</CardTitle>
           </CardHeader>
           <dl className="space-y-3 text-sm">
-            <Field label="Receiver MAC" value={station.receiverMac || '—'} />
-            <Field label="Transmitter MAC" value={station.transmitterMac || '—'} />
+            <Field label="Receiver MAC" value={station.rxMac || '—'} />
+            <Field label="Transmitter MAC" value={station.txMac || '—'} />
           </dl>
         </Card>
       </div>

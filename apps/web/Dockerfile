@@ -1,29 +1,37 @@
-# ── Build stage ──
+# Dependency stage
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Build stage
 FROM node:20-alpine AS build
 WORKDIR /app
-
-COPY package.json ./
-RUN npm install
-
-COPY next.config.mjs tsconfig.json tailwind.config.ts postcss.config.mjs ./
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json next.config.mjs tsconfig.json tailwind.config.js postcss.config.js ./
 COPY src/ src/
 COPY public/ public/
 
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:3001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+
 RUN npm run build
 
-# ── Runtime stage ──
-FROM node:20-alpine
+# Runtime stage — standalone output
+FROM node:20-alpine AS runner
 WORKDIR /app
+ENV NODE_ENV=production
 
 RUN addgroup -S biomech && adduser -S biomech -G biomech
 
-COPY --from=build /app/.next .next/
-COPY --from=build /app/node_modules node_modules/
-COPY --from=build /app/package.json ./
-COPY --from=build /app/public public/
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
 
 USER biomech
-
 EXPOSE 3000
-
-CMD ["npm", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]

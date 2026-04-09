@@ -116,16 +116,25 @@ export interface WsSignalDiagnostics {
   event: 'signal-diagnostics';
   timestamp: number;
   gateAcceptanceRate: number;
-  fieldModel: {
+  gateLastDecision?: {
+    accepted: boolean;
+    reason: string;
+    score: number;
+  };
+  fieldModel?: {
     state: string;
     driftScore: number;
     motionEnergy: number;
     calibrationAge: number;
     presenceDetected: boolean;
   };
+  fieldModelState?: string;
+  fieldModelDriftScore?: number;
+  fieldModelMotionEnergy?: number;
+  fieldModelCalibrationAge?: number;
   pipelinePassRates: Record<string, number>;
   throughputHz: number;
-  coherence: {
+  coherence?: {
     coherence: number;
     normalizedEntropy: number;
     isDecoherenceEvent: boolean;
@@ -137,11 +146,12 @@ export interface WsFieldModelState {
   event: 'field-model-state';
   timestamp: number;
   state: string;
-  baselineAge: number;
+  baselineAge?: number;
+  calibrationAge?: number;
   driftScore: number;
   motionEnergy: number;
   presenceDetected: boolean;
-  disclaimer: string;
+  disclaimer?: string;
 }
 
 // ─── New RuView-Inspired Event DTOs ─────────────────────────────────

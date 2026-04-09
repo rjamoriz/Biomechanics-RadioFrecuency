@@ -148,7 +148,7 @@ export class AutonomousService implements OnModuleInit {
       }
 
       // Build session features
-      const coherence = this.coherenceMonitor.getState();
+      const coherenceState = this.coherenceMonitor.getState();
       const sessionFeatures: SessionFeatures = {
         motionEnergy,
         signalQuality: metrics.signalQualityScore,
@@ -156,7 +156,7 @@ export class AutonomousService implements OnModuleInit {
         symmetryProxy: metrics.symmetryProxy,
         contactTimeProxy: metrics.contactTimeProxy,
         fatigueDriftScore: metrics.fatigueDriftScore,
-        coherence: coherence.coherence,
+        coherence: coherenceState.coherence,
         prevMotionEnergy: this.tracker.prevMotionEnergy,
         cadenceStable: this.isCadenceStable(),
         cadenceChangePct: this.cadenceChangePct(),

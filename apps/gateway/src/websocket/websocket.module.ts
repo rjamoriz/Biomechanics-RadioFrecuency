@@ -6,6 +6,7 @@ import { TreadmillModule } from '../treadmill/treadmill.module';
 import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 import { AutonomousModule } from '../autonomous/autonomous.module';
 import { RecordingModule } from '../recording/recording.module';
+import { DemoModule } from '../demo/demo.module';
 
 const isDemoMode = process.env.DEMO_MODE === 'true';
 
@@ -17,7 +18,7 @@ const isDemoMode = process.env.DEMO_MODE === 'true';
     VitalSignsModule,
     AutonomousModule,
     RecordingModule,
-    ...(isDemoMode ? [require('../demo/demo.module').DemoModule] : []),
+    ...(isDemoMode ? [DemoModule] : []),
   ],
   providers: [LiveGateway],
 })

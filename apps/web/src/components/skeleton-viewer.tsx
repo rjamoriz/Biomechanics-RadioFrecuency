@@ -61,14 +61,14 @@ const BONES: [number, number][] = [
 ];
 
 // Left-side indices (blue)
-const LEFT_INDICES = new Set([
+const LEFT_INDICES: Set<number> = new Set([
   COCO.LEFT_EYE, COCO.LEFT_EAR, COCO.LEFT_SHOULDER,
   COCO.LEFT_ELBOW, COCO.LEFT_WRIST, COCO.LEFT_HIP,
   COCO.LEFT_KNEE, COCO.LEFT_ANKLE,
 ]);
 
 // Right-side indices (red)
-const RIGHT_INDICES = new Set([
+const RIGHT_INDICES: Set<number> = new Set([
   COCO.RIGHT_EYE, COCO.RIGHT_EAR, COCO.RIGHT_SHOULDER,
   COCO.RIGHT_ELBOW, COCO.RIGHT_WRIST, COCO.RIGHT_HIP,
   COCO.RIGHT_KNEE, COCO.RIGHT_ANKLE,

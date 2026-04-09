@@ -47,10 +47,10 @@ export default function AthleteDetailPage() {
           <dl className="space-y-3 text-sm">
             <Field label="Email" value={athlete.email} />
             <Field label="Sport" value={athlete.sport || '—'} />
-            <Field label="Birth Year" value={athlete.birthYear?.toString() || '—'} />
+            <Field label="Date of Birth" value={athlete.dateOfBirth || '—'} />
             <Field label="Height" value={athlete.heightCm ? `${athlete.heightCm} cm` : '—'} />
             <Field label="Weight" value={athlete.weightKg ? `${athlete.weightKg} kg` : '—'} />
-            <Field label="Shoe Notes" value={athlete.shoeNotes || '—'} />
+            <Field label="Notes" value={athlete.notes || '—'} />
           </dl>
         </Card>
 
