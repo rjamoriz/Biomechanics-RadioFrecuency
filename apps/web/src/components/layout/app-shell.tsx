@@ -32,10 +32,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="hidden w-64 flex-shrink-0 border-r border-slate-200 bg-white md:flex md:flex-col">
-        <div className="flex h-16 items-center gap-2 border-b border-slate-200 px-6">
+      <aside className="hidden w-64 flex-shrink-0 border-r border-slate-700/50 bg-slate-900 md:flex md:flex-col">
+        <div className="flex h-16 items-center gap-2 border-b border-slate-700/50 px-6">
           <Activity className="h-6 w-6 text-brand-600" />
-          <span className="text-lg font-semibold text-brand-900">Biomech</span>
+          <span className="text-lg font-semibold text-brand-100">Biomech</span>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
@@ -48,8 +48,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={clsx(
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   active
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                    ? 'bg-brand-600/20 text-brand-400'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200',
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -59,8 +59,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-slate-200 p-4">
-          <p className="text-xs text-slate-400">
+        <div className="border-t border-slate-700/50 p-4">
+          <p className="text-xs text-slate-500">
             Biomech Platform v0.1.0
           </p>
         </div>

@@ -70,7 +70,7 @@ export function SkeletonViewerCard({
 
       {/* Loading state */}
       {loading && !hasData && (
-        <div className="flex h-[400px] items-center justify-center rounded-lg bg-slate-50">
+        <div className="flex h-[400px] items-center justify-center rounded-lg bg-slate-800">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="h-10 w-10 animate-spin text-slate-400" />
             <p className="text-sm text-slate-500">Waiting for inferred motion data…</p>
@@ -80,9 +80,9 @@ export function SkeletonViewerCard({
 
       {/* Empty state */}
       {!loading && !hasData && (
-        <div className="flex h-[400px] flex-col items-center justify-center rounded-lg bg-slate-50">
-          <Activity className="h-12 w-12 text-slate-300" />
-          <p className="mt-4 text-sm text-slate-500">
+        <div className="flex h-[400px] flex-col items-center justify-center rounded-lg bg-slate-800">
+          <Activity className="h-12 w-12 text-slate-600" />
+          <p className="mt-4 text-sm text-slate-400">
             No inferred skeleton data available.
           </p>
           <p className="mt-1 text-xs text-slate-400">

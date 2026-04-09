@@ -24,7 +24,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-100">Dashboard</h1>
         <div className="flex items-center gap-2">
           <Badge variant={connected ? 'success' : 'danger'}>
             {connected ? 'Connected' : 'Disconnected'}
@@ -90,8 +90,8 @@ export default function DashboardPage() {
       {/* Empty state */}
       {!metrics && (
         <Card className="py-12 text-center">
-          <Activity className="mx-auto h-12 w-12 text-slate-300" />
-          <p className="mt-4 text-sm text-slate-500">
+          <Activity className="mx-auto h-12 w-12 text-slate-600" />
+          <p className="mt-4 text-sm text-slate-400">
             No live data available. Start a session or enable demo mode.
           </p>
         </Card>
@@ -111,11 +111,11 @@ export default function DashboardPage() {
           </CardHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             {vitalSigns.breathing && (
-              <div className="flex items-center gap-3 rounded-lg bg-blue-50 p-4">
+              <div className="flex items-center gap-3 rounded-lg bg-blue-950/50 p-4">
                 <Wind className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="text-xs text-blue-600">Estimated Breathing Rate</p>
-                  <p className="text-2xl font-bold text-blue-900">
+                  <p className="text-xs text-blue-400">Estimated Breathing Rate</p>
+                  <p className="text-2xl font-bold text-blue-100">
                     {vitalSigns.breathing.estimatedBpm.toFixed(1)} BPM
                   </p>
                   <ConfidenceIndicator
@@ -126,11 +126,11 @@ export default function DashboardPage() {
               </div>
             )}
             {vitalSigns.heartRate && (
-              <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4">
+              <div className="flex items-center gap-3 rounded-lg bg-red-950/50 p-4">
                 <Heart className="h-8 w-8 text-red-500" />
                 <div>
-                  <p className="text-xs text-red-600">Estimated Heart Rate</p>
-                  <p className="text-2xl font-bold text-red-900">
+                  <p className="text-xs text-red-400">Estimated Heart Rate</p>
+                  <p className="text-2xl font-bold text-red-100">
                     {vitalSigns.heartRate.estimatedBpm.toFixed(1)} BPM
                   </p>
                   <ConfidenceIndicator
@@ -149,8 +149,8 @@ export default function DashboardPage() {
         <SkeletonViewerCard
           keypoints={
             inferredFrame.keypoints2D?.map((kp) => ({
-              x: kp.x,
-              y: kp.y,
+              x: (kp.x - 0.5) * 2,
+              y: (1 - kp.y) * 1.8,
               z: 0,
               confidence: kp.confidence,
             })) ?? null
@@ -183,12 +183,12 @@ function QuickStat({
   return (
     <Card>
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-brand-50 p-2">
-          <Icon className="h-5 w-5 text-brand-600" />
+        <div className="rounded-lg bg-brand-600/10 p-2">
+          <Icon className="h-5 w-5 text-brand-400" />
         </div>
         <div>
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="text-xl font-semibold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-400">{label}</p>
+          <p className="text-xl font-semibold text-slate-100">{value}</p>
         </div>
       </div>
     </Card>
@@ -197,9 +197,9 @@ function QuickStat({
 
 function MetricTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-900">{value}</p>
+    <div className="rounded-lg bg-slate-800 p-3">
+      <p className="text-xs text-slate-400">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-100">{value}</p>
     </div>
   );
 }

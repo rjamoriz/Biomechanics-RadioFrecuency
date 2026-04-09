@@ -221,7 +221,7 @@ function SkeletonScene({ keypoints, modelConfidence }: {
       />
 
       {/* Confidence HUD overlay */}
-      <Html position={[0, 2.1, 0]} center distanceFactor={4}>
+      <Html position={[0, 1.9, 0]} center distanceFactor={4}>
         <div className="pointer-events-none select-none whitespace-nowrap rounded-full bg-slate-900/80 px-3 py-1 text-xs font-medium backdrop-blur">
           <span className="text-slate-300">Model Confidence: </span>
           <span className={confidenceColor}>
@@ -256,7 +256,7 @@ export function SkeletonViewer({ keypoints, modelConfidence, className }: Skelet
       data-synthetic="true"
     >
       <Canvas
-        camera={{ position: [0, 1.2, 3], fov: 50 }}
+        camera={{ position: [0, 0.9, 3], fov: 50 }}
         gl={{ antialias: true }}
         style={{ background: '#0f172a' }}
       >

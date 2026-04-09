@@ -13,8 +13,8 @@ module.exports = {
           900: '#1e3a5f',
         },
         surface: {
-          DEFAULT: '#ffffff',
-          secondary: '#f8fafc',
+          DEFAULT: '#0f172a',
+          secondary: '#020617',
           dark: '#0f172a',
         },
         status: {
