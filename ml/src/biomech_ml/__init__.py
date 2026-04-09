@@ -45,3 +45,25 @@ from biomech_ml.augmentation import (
     CsiAugmentor,
     AugmentorConfig,
 )
+from biomech_ml.transfer_learning import (
+    CsiPretrainEncoder,
+    PretrainConfig,
+    PretrainMetadata,
+    nt_xent_loss,
+    pretrain_encoder,
+    fine_tune_for_task,
+)
+from biomech_ml.onnx_export import (
+    export_temporal_model,
+    export_pretrain_encoder,
+    validate_onnx_model,
+    OnnxInferenceSession,
+    ValidationResult,
+)
+from biomech_ml.domain_generalization import (
+    GradientReversalLayer,
+    DomainAdversarialHead,
+    DomainInvariantTrainer,
+    FeatureAligner,
+    TrainStepResult,
+)

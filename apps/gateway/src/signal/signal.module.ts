@@ -5,10 +5,11 @@ import { BandpassFilter } from './bandpass-filter';
 import { SubcarrierSelector } from './subcarrier-selector';
 import { BodyVelocityProfile } from './body-velocity-profile';
 
-// Note: CoherenceGate, FresnelZoneCalculator, PersistentFieldModel, and
-// SignalLinePipeline are pure classes (no DI needed). They are instantiated
-// directly by consuming services (e.g. AutonomousService) rather than
-// registered as NestJS providers.
+// Note: CoherenceGate, FresnelZoneCalculator, PersistentFieldModel,
+// StationFieldModel, FieldModelManager, EnvironmentNormalizer,
+// AdaptiveNormalizer, and SignalLinePipeline are pure classes (no DI needed).
+// They are instantiated directly by consuming services (e.g. AutonomousService)
+// rather than registered as NestJS providers.
 
 @Module({
   providers: [

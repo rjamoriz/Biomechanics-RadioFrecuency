@@ -314,3 +314,237 @@ export class PersistentFieldModel {
 function round4(v: number): number {
   return Math.round(v * 10000) / 10000;
 }
+
+// ─── Adaptive Station Field Model (P2) ──────────────────────────────
+//
+// Per-station model that learns the RF environment using exponential
+// moving averages. Complements PersistentFieldModel with adaptive
+// statistics and anomaly scoring.
+
+export interface FieldModelConfig {
+  /** Number of recent samples for windowed stats fallback */
+  windowSize: number;
+  /** EMA decay factor α ∈ (0, 1]; higher = faster adaptation */
+  decayFactor: number;
+  /** Minimum interval (ms) between stat updates for throttling */
+  updateIntervalMs: number;
+  /** Max subcarrier history entries to retain */
+  maxHistory: number;
+  /** Minimum samples before the model is considered usable */
+  minSamplesForModel: number;
+  /** Milliseconds before model is considered stale (default 60 000) */
+  staleThresholdMs?: number;
+}
+
+export type ModelQuality = 'insufficient' | 'building' | 'stable' | 'stale';
+
+export interface ExpectedProfile {
+  mean: number[];
+  variance: number[];
+  sampleCount: number;
+  lastUpdated: number;
+  quality: ModelQuality;
+}
+
+export interface DeviationResult {
+  deviationScore: number;
+  subcarrierDeviations: number[];
+  anomalyFlag: boolean;
+  /** Confidence in the deviation score [0, 1] */
+  confidence: number;
+}
+
+const DEFAULT_FIELD_MODEL_CONFIG: FieldModelConfig = {
+  windowSize: 100,
+  decayFactor: 0.05,
+  updateIntervalMs: 0,
+  maxHistory: 1000,
+  minSamplesForModel: 20,
+  staleThresholdMs: 60_000,
+};
+
+/**
+ * Adaptive per-station RF field model using exponential moving averages.
+ *
+ * Maintains running mean and variance for each subcarrier, detects anomalies,
+ * and supports serialization for persistence across restarts.
+ *
+ * All outputs are estimated proxy metrics — not clinical-grade measurements.
+ */
+export class StationFieldModel {
+  readonly stationId: string;
+  private readonly config: FieldModelConfig;
+
+  private emaMean: number[] = [];
+  private emaVariance: number[] = [];
+  private sampleCount = 0;
+  private lastUpdated = 0;
+  private lastUpdateApplied = 0;
+
+  constructor(stationId: string, config?: Partial<FieldModelConfig>) {
+    this.stationId = stationId;
+    this.config = { ...DEFAULT_FIELD_MODEL_CONFIG, ...config };
+  }
+
+  /**
+   * Feed a new CSI frame and update running EMA statistics.
+   */
+  update(csiFrame: { subcarriers: number[]; timestamp: number }): void {
+    const { subcarriers, timestamp } = csiFrame;
+    if (subcarriers.length === 0) return;
+
+    // Throttle updates if configured
+    if (
+      this.config.updateIntervalMs > 0 &&
+      timestamp - this.lastUpdateApplied < this.config.updateIntervalMs
+    ) {
+      return;
+    }
+
+    const alpha = this.config.decayFactor;
+
+    if (this.sampleCount === 0) {
+      // First frame — initialize EMA to raw values
+      this.emaMean = [...subcarriers];
+      this.emaVariance = new Array(subcarriers.length).fill(0);
+    } else {
+      const n = Math.min(subcarriers.length, this.emaMean.length);
+      for (let i = 0; i < n; i++) {
+        const diff = subcarriers[i] - this.emaMean[i];
+        this.emaMean[i] += alpha * diff;
+        // EMA variance: Var_new = (1 - α) * (Var_old + α * diff²)
+        this.emaVariance[i] = (1 - alpha) * (this.emaVariance[i] + alpha * diff * diff);
+      }
+    }
+
+    this.sampleCount++;
+    this.lastUpdated = timestamp;
+    this.lastUpdateApplied = timestamp;
+  }
+
+  /**
+   * Return the current expected RF profile with quality assessment.
+   */
+  getExpectedProfile(): ExpectedProfile {
+    return {
+      mean: [...this.emaMean],
+      variance: [...this.emaVariance],
+      sampleCount: this.sampleCount,
+      lastUpdated: this.lastUpdated,
+      quality: this.computeQuality(),
+    };
+  }
+
+  /**
+   * Compare a frame against the learned model.
+   * Returns deviation score and per-subcarrier breakdowns.
+   */
+  computeDeviation(frame: { subcarriers: number[] }): DeviationResult {
+    if (this.sampleCount === 0 || this.emaMean.length === 0) {
+      return {
+        deviationScore: 0,
+        subcarrierDeviations: [],
+        anomalyFlag: false,
+        confidence: 0,
+      };
+    }
+
+    const n = Math.min(frame.subcarriers.length, this.emaMean.length);
+    const subcarrierDeviations = new Array<number>(n);
+    let sumDeviation = 0;
+
+    for (let i = 0; i < n; i++) {
+      const stdDev = Math.sqrt(Math.max(this.emaVariance[i], 1e-9));
+      const zScore = Math.abs(frame.subcarriers[i] - this.emaMean[i]) / stdDev;
+      subcarrierDeviations[i] = round4(zScore);
+      sumDeviation += zScore;
+    }
+
+    const deviationScore = n > 0 ? round4(sumDeviation / n) : 0;
+    // Anomaly if average z-score > 3
+    const anomalyFlag = deviationScore > 3;
+    // Confidence scales from 0 to 1 based on sample count vs minimum
+    const confidence = round4(
+      Math.min(1, this.sampleCount / this.config.minSamplesForModel),
+    );
+
+    return { deviationScore, subcarrierDeviations, anomalyFlag, confidence };
+  }
+
+  /** Clear all learned state. */
+  reset(): void {
+    this.emaMean = [];
+    this.emaVariance = [];
+    this.sampleCount = 0;
+    this.lastUpdated = 0;
+    this.lastUpdateApplied = 0;
+  }
+
+  /** JSON serialization for persistence. */
+  serialize(): string {
+    return JSON.stringify({
+      stationId: this.stationId,
+      config: this.config,
+      emaMean: this.emaMean,
+      emaVariance: this.emaVariance,
+      sampleCount: this.sampleCount,
+      lastUpdated: this.lastUpdated,
+    });
+  }
+
+  /** Restore a StationFieldModel from serialized JSON. */
+  static deserialize(json: string): StationFieldModel {
+    const data = JSON.parse(json);
+    const model = new StationFieldModel(data.stationId, data.config);
+    model.emaMean = data.emaMean ?? [];
+    model.emaVariance = data.emaVariance ?? [];
+    model.sampleCount = data.sampleCount ?? 0;
+    model.lastUpdated = data.lastUpdated ?? 0;
+    return model;
+  }
+
+  // ─── Private ────────────────────────────────────────────────────
+
+  private computeQuality(): ModelQuality {
+    if (this.sampleCount < this.config.minSamplesForModel) {
+      return this.sampleCount === 0 ? 'insufficient' : 'building';
+    }
+    const staleThreshold = this.config.staleThresholdMs ?? 60_000;
+    if (this.lastUpdated > 0 && Date.now() - this.lastUpdated > staleThreshold) {
+      return 'stale';
+    }
+    return 'stable';
+  }
+}
+
+/**
+ * Manages multiple StationFieldModels keyed by station ID.
+ */
+export class FieldModelManager {
+  private readonly models = new Map<string, StationFieldModel>();
+  private readonly defaultConfig: Partial<FieldModelConfig>;
+
+  constructor(defaultConfig?: Partial<FieldModelConfig>) {
+    this.defaultConfig = defaultConfig ?? {};
+  }
+
+  /** Get existing or create new model for a station. */
+  getOrCreate(stationId: string, config?: FieldModelConfig): StationFieldModel {
+    let model = this.models.get(stationId);
+    if (!model) {
+      model = new StationFieldModel(stationId, config ?? this.defaultConfig);
+      this.models.set(stationId, model);
+    }
+    return model;
+  }
+
+  /** Remove a station model. */
+  remove(stationId: string): boolean {
+    return this.models.delete(stationId);
+  }
+
+  /** List all tracked station IDs. */
+  listStations(): string[] {
+    return Array.from(this.models.keys());
+  }
+}
