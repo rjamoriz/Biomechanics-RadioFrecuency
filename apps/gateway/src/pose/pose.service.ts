@@ -27,8 +27,8 @@ export class PoseService implements OnModuleInit {
       this.windowBuffer.push(packet);
       counter++;
 
-      // Run inference every 50 packets (~0.5s at 100 Hz)
-      if (counter % 50 === 0 && this.windowBuffer.isFull) {
+      // Run inference every 5 packets (~20 Hz at 100 Hz) for smooth animation
+      if (counter % 5 === 0) {
         const window = this.windowBuffer
           .toArray()
           .map((p) => p.amplitude);

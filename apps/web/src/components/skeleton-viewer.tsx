@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -161,15 +161,45 @@ function BoneSegment({ start, end, color, opacity }: {
   );
 }
 
-/** The 3D skeleton scene contents (rendered inside Canvas). */
+/** The 3D skeleton scene contents with frame interpolation for smooth motion. */
 function SkeletonScene({ keypoints, modelConfidence }: {
   keypoints: SkeletonKeypoint[];
   modelConfidence: number;
 }) {
-  const positions = useMemo(
-    () => keypoints.map((kp) => new THREE.Vector3(kp.x, kp.y, kp.z)),
-    [keypoints],
+  // Keep target keypoints in a ref (updated from props without re-render)
+  const targetRef = useRef<SkeletonKeypoint[]>(keypoints);
+  targetRef.current = keypoints;
+
+  // Smoothly interpolated positions — updated every animation frame
+  const smoothedRef = useRef<SkeletonKeypoint[]>(
+    keypoints.map((kp) => ({ ...kp })),
   );
+
+  // Re-sync array length if keypoint count changes
+  if (smoothedRef.current.length !== keypoints.length) {
+    smoothedRef.current = keypoints.map((kp) => ({ ...kp }));
+  }
+
+  // Trigger React re-renders in sync with rAF for smooth visuals
+  const [, setRenderTick] = useState(0);
+
+  useFrame(() => {
+    const target = targetRef.current;
+    const smoothed = smoothedRef.current;
+    const lerpFactor = 0.18;
+
+    for (let i = 0; i < target.length && i < smoothed.length; i++) {
+      smoothed[i].x += (target[i].x - smoothed[i].x) * lerpFactor;
+      smoothed[i].y += (target[i].y - smoothed[i].y) * lerpFactor;
+      smoothed[i].z += (target[i].z - smoothed[i].z) * lerpFactor;
+      smoothed[i].confidence = target[i].confidence;
+    }
+
+    setRenderTick((t) => t + 1);
+  });
+
+  const kps = smoothedRef.current;
+  const positions = kps.map((kp) => new THREE.Vector3(kp.x, kp.y, kp.z));
 
   const confidenceColor =
     modelConfidence >= 0.7 ? 'text-green-400' :
@@ -182,7 +212,7 @@ function SkeletonScene({ keypoints, modelConfidence }: {
       <directionalLight position={[5, 10, 5]} intensity={0.8} />
 
       {/* Joint spheres */}
-      {keypoints.map((kp, i) => (
+      {kps.map((kp, i) => (
         <JointSphere
           key={i}
           position={[kp.x, kp.y, kp.z]}
@@ -193,8 +223,8 @@ function SkeletonScene({ keypoints, modelConfidence }: {
 
       {/* Bone segments */}
       {BONES.map(([a, b]) => {
-        if (a >= keypoints.length || b >= keypoints.length) return null;
-        const minConf = Math.min(keypoints[a].confidence, keypoints[b].confidence);
+        if (a >= kps.length || b >= kps.length) return null;
+        const minConf = Math.min(kps[a].confidence, kps[b].confidence);
         const opacity = getOpacity(minConf);
         return (
           <BoneSegment

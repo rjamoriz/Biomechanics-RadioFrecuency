@@ -120,9 +120,9 @@ export class DemoPoseGenerator {
     const cosOpp = Math.cos(phase + Math.PI);
 
     // Scale of motion increases with speed
-    const motionScale = Math.min(1, speedKmh / 16) * 0.8;
+    const motionScale = Math.min(1, speedKmh / 12);
     // Vertical oscillation (center of mass bob)
-    const verticalBob = Math.abs(sinP) * 0.015 * motionScale;
+    const verticalBob = Math.abs(sinP) * 0.03 * motionScale;
 
     return COCO_NAMES.map((name, i) => {
       const [bx, by] = BASE_POSE[i];
@@ -145,52 +145,52 @@ export class DemoPoseGenerator {
         case 'right_eye':
         case 'left_ear':
         case 'right_ear':
-          dx = sinP * 0.005 * motionScale;
-          dy += Math.abs(sinP) * 0.003 * motionScale;
+          dx = sinP * 0.008 * motionScale;
+          dy += Math.abs(sinP) * 0.006 * motionScale;
           break;
 
         // --- Shoulders: contralateral rotation ---
         case 'left_shoulder':
         case 'right_shoulder':
-          dx = sP * 0.02 * motionScale;
-          dy += Math.abs(sP) * 0.005 * motionScale;
+          dx = sP * 0.03 * motionScale;
+          dy += Math.abs(sP) * 0.01 * motionScale;
           break;
 
         // --- Elbows: arm swing ---
         case 'left_elbow':
         case 'right_elbow':
-          dx = sP * 0.04 * motionScale;
-          dy += cP * 0.03 * motionScale;
+          dx = sP * 0.08 * motionScale;
+          dy += cP * 0.06 * motionScale;
           break;
 
         // --- Wrists: larger arm swing ---
         case 'left_wrist':
         case 'right_wrist':
-          dx = sP * 0.06 * motionScale;
-          dy += cP * 0.05 * motionScale;
+          dx = sP * 0.12 * motionScale;
+          dy += cP * 0.10 * motionScale;
           break;
 
         // --- Hips: slight lateral sway + forward rotation ---
         case 'left_hip':
         case 'right_hip':
-          dx = sP * 0.015 * motionScale;
-          dy += Math.abs(sP) * 0.008 * motionScale;
+          dx = sP * 0.025 * motionScale;
+          dy += Math.abs(sP) * 0.015 * motionScale;
           break;
 
         // --- Knees: large swing, main gait driver ---
         case 'left_knee':
         case 'right_knee':
-          dx = sP * 0.06 * motionScale;
-          dy += -Math.abs(cP) * 0.04 * motionScale; // knee lifts
+          dx = sP * 0.10 * motionScale;
+          dy += -Math.abs(cP) * 0.08 * motionScale; // knee lifts
           break;
 
         // --- Ankles: ground contact cycle ---
         case 'left_ankle':
         case 'right_ankle': {
-          const swing = sP * 0.08 * motionScale;
+          const swing = sP * 0.14 * motionScale;
           dx = swing;
           // Foot lifts during swing phase, on ground during stance
-          const lift = Math.max(0, cP) * 0.06 * motionScale;
+          const lift = Math.max(0, cP) * 0.12 * motionScale;
           dy += -lift;
           break;
         }
