@@ -24,7 +24,7 @@ export interface RealtimeMetrics {
 
 export interface InferredMotionFrame {
   timestamp: number;
-  keypoints2D: Array<{ name: string; x: number; y: number; confidence: number }>;
+  keypoints2D: Array<{ name: string; x: number; y: number; z?: number; confidence: number }>;
   modelVersion: string;
   experimental: boolean;
   confidence: number;

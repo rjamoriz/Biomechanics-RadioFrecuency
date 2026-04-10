@@ -151,7 +151,7 @@ export default function DashboardPage() {
             inferredFrame.keypoints2D?.map((kp) => ({
               x: (kp.x - 0.5) * 2,
               y: (1 - kp.y) * 1.8,
-              z: 0,
+              z: (kp.z ?? 0) * 2,
               confidence: kp.confidence,
             })) ?? null
           }

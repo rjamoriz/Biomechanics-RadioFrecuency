@@ -9,6 +9,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json next.config.mjs tsconfig.json tailwind.config.js postcss.config.js ./
+# Cache-bust to force fresh source copy
+ARG CACHEBUST=1
 COPY src/ src/
 COPY public/ public/
 

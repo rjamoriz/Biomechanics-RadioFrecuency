@@ -28,25 +28,28 @@ const COCO_NAMES = [
   'right_ankle',
 ];
 
-/** Base standing pose (normalized 0..1 coordinates, lateral view) */
-const BASE_POSE: Array<[number, number]> = [
-  [0.50, 0.08], // nose
-  [0.48, 0.06], // left_eye
-  [0.52, 0.06], // right_eye
-  [0.46, 0.07], // left_ear
-  [0.54, 0.07], // right_ear
-  [0.42, 0.22], // left_shoulder
-  [0.58, 0.22], // right_shoulder
-  [0.38, 0.38], // left_elbow
-  [0.62, 0.38], // right_elbow
-  [0.36, 0.52], // left_wrist
-  [0.64, 0.52], // right_wrist
-  [0.44, 0.52], // left_hip
-  [0.56, 0.52], // right_hip
-  [0.42, 0.72], // left_knee
-  [0.58, 0.72], // right_knee
-  [0.40, 0.92], // left_ankle
-  [0.60, 0.92], // right_ankle
+/**
+ * Base standing pose (normalized 0..1 coordinates, frontal view).
+ * [x, y, z] — x=lateral, y=vertical (0=top), z=depth (forward/back).
+ */
+const BASE_POSE: Array<[number, number, number]> = [
+  [0.50, 0.08, 0.00], // nose
+  [0.48, 0.06, 0.00], // left_eye
+  [0.52, 0.06, 0.00], // right_eye
+  [0.46, 0.07, 0.00], // left_ear
+  [0.54, 0.07, 0.00], // right_ear
+  [0.42, 0.22, 0.00], // left_shoulder
+  [0.58, 0.22, 0.00], // right_shoulder
+  [0.38, 0.38, 0.00], // left_elbow
+  [0.62, 0.38, 0.00], // right_elbow
+  [0.36, 0.52, 0.00], // left_wrist
+  [0.64, 0.52, 0.00], // right_wrist
+  [0.44, 0.52, 0.00], // left_hip
+  [0.56, 0.52, 0.00], // right_hip
+  [0.44, 0.72, 0.00], // left_knee
+  [0.56, 0.72, 0.00], // right_knee
+  [0.44, 0.92, 0.00], // left_ankle
+  [0.56, 0.92, 0.00], // right_ankle
 ];
 
 /** Base confidence per joint (torso=high, extremities=lower) */
@@ -113,90 +116,117 @@ export class DemoPoseGenerator {
     speedKmh: number,
     fatigue: number,
   ): Keypoint2D[] {
-    const sinP = Math.sin(phase);
-    const cosP = Math.cos(phase);
-    // Opposite phase for contralateral movement
-    const sinPOpp = Math.sin(phase + Math.PI);
-    const cosOpp = Math.cos(phase + Math.PI);
+    // Scale of motion increases with speed (full range at 14 km/h)
+    const motionScale = Math.min(1, speedKmh / 14);
 
-    // Scale of motion increases with speed
-    const motionScale = Math.min(1, speedKmh / 12);
-    // Vertical oscillation (center of mass bob)
-    const verticalBob = Math.abs(sinP) * 0.03 * motionScale;
+    // --- Gait cycle helpers ---
+    // Left leg follows `phase`, right leg is π out of phase (contralateral).
+    // Arms are opposite to their ipsilateral leg (right arm forward when left leg forward).
+    const sinL = Math.sin(phase);
+    const cosL = Math.cos(phase);
+    const sinR = Math.sin(phase + Math.PI);
+    const cosR = Math.cos(phase + Math.PI);
+
+    // Vertical center-of-mass oscillation: bounces TWICE per stride (once per foot contact).
+    // Peak height during flight phase, lowest at mid-stance.
+    const verticalBob = Math.abs(Math.sin(phase * 2)) * 0.025 * motionScale;
 
     return COCO_NAMES.map((name, i) => {
-      const [bx, by] = BASE_POSE[i];
-      let dx = 0;
-      let dy = -verticalBob; // slight upward bob at mid-stance
+      const [bx, by, bz] = BASE_POSE[i];
+      let dx = 0; // lateral (minimal for running)
+      let dy = -verticalBob; // whole-body vertical oscillation (negative = up)
+      let dz = 0; // sagittal depth (forward/back)
 
-      // Fatigue adds jitter
-      const fatigueJitter = fatigue * 0.008 * (Math.random() - 0.5);
+      // Fatigue noise
+      const fatigueJitter = fatigue * 0.005 * (Math.random() - 0.5);
 
+      // Determine side and corresponding phase signals
       const isLeft = name.startsWith('left_');
       const isRight = name.startsWith('right_');
-      const sideSign = isLeft ? 1 : isRight ? -1 : 0;
-      const sP = isLeft ? sinP : sinPOpp;
-      const cP = isLeft ? cosP : cosOpp;
+
+      // For LEGS: left=sinL, right=sinR
+      // For ARMS: contralateral — left arm with right leg, right arm with left leg
+      const legSin = isLeft ? sinL : sinR;
+      const legCos = isLeft ? cosL : cosR;
+      const armSin = isLeft ? sinR : sinL; // opposite to leg
+      const armCos = isLeft ? cosR : cosL;
 
       switch (name) {
-        // --- Head region: minimal sway ---
+        // ── Head: minimal motion, just vertical bob + tiny lateral sway ──
         case 'nose':
         case 'left_eye':
         case 'right_eye':
         case 'left_ear':
         case 'right_ear':
-          dx = sinP * 0.008 * motionScale;
-          dy += Math.abs(sinP) * 0.006 * motionScale;
+          dx = Math.sin(phase * 2) * 0.004 * motionScale; // tiny lateral sway at double freq
           break;
 
-        // --- Shoulders: contralateral rotation ---
+        // ── Shoulders: slight counter-rotation (lateral) + depth rotation ──
         case 'left_shoulder':
-        case 'right_shoulder':
-          dx = sP * 0.03 * motionScale;
-          dy += Math.abs(sP) * 0.01 * motionScale;
+        case 'right_shoulder': {
+          const shoulderSin = isLeft ? sinL : sinR;
+          dx = shoulderSin * 0.008 * motionScale; // minimal lateral
+          dz = -shoulderSin * 0.04 * motionScale; // torso rotation in depth
           break;
+        }
 
-        // --- Elbows: arm swing ---
+        // ── Elbows: arm pump — mainly depth + slight vertical ──
         case 'left_elbow':
         case 'right_elbow':
-          dx = sP * 0.08 * motionScale;
-          dy += cP * 0.06 * motionScale;
+          dz = armSin * 0.10 * motionScale; // forward/back arm pump
+          dy += armCos * 0.03 * motionScale; // slight up/down with pump
+          dx = armSin * 0.010 * motionScale; // minimal lateral
           break;
 
-        // --- Wrists: larger arm swing ---
+        // ── Wrists: larger arm swing — mainly depth + vertical ──
         case 'left_wrist':
         case 'right_wrist':
-          dx = sP * 0.12 * motionScale;
-          dy += cP * 0.10 * motionScale;
+          dz = armSin * 0.16 * motionScale; // big forward/back swing
+          dy += armCos * 0.06 * motionScale; // wrist rises when arm pumps forward
+          dx = armSin * 0.012 * motionScale; // minimal lateral
           break;
 
-        // --- Hips: slight lateral sway + forward rotation ---
+        // ── Hips: very slight lateral sway + vertical drop on stance side ──
         case 'left_hip':
-        case 'right_hip':
-          dx = sP * 0.025 * motionScale;
-          dy += Math.abs(sP) * 0.015 * motionScale;
+        case 'right_hip': {
+          dx = legSin * 0.008 * motionScale; // minimal hip sway
+          // Slight hip drop on swing side (Trendelenburg-like)
+          dy += Math.max(0, legSin) * 0.010 * motionScale;
+          dz = legSin * 0.015 * motionScale; // tiny forward/back hip rotation
           break;
+        }
 
-        // --- Knees: large swing, main gait driver ---
+        // ── Knees: PRIMARY running motion — big vertical lift during swing ──
         case 'left_knee':
-        case 'right_knee':
-          dx = sP * 0.10 * motionScale;
-          dy += -Math.abs(cP) * 0.08 * motionScale; // knee lifts
+        case 'right_knee': {
+          // Knee LIFTS during swing phase (when sin > 0), stays low during stance
+          const kneeLift = Math.max(0, legSin);
+          dy += -kneeLift * 0.14 * motionScale; // significant upward lift (negative = up)
+          // Knee moves forward during swing, backward during stance
+          dz = legSin * 0.08 * motionScale;
+          // Minimal lateral motion
+          dx = legSin * 0.006 * motionScale;
           break;
+        }
 
-        // --- Ankles: ground contact cycle ---
+        // ── Ankles: ground contact cycle — lifts during swing, planted during stance ──
         case 'left_ankle':
         case 'right_ankle': {
-          const swing = sP * 0.14 * motionScale;
-          dx = swing;
-          // Foot lifts during swing phase, on ground during stance
-          const lift = Math.max(0, cP) * 0.12 * motionScale;
-          dy += -lift;
+          // Foot lifts behind and up during swing phase (cos < 0 = back-kick)
+          const swingPhase = Math.max(0, legSin);
+          const backKick = Math.max(0, -legCos);
+          // Vertical: lift foot during swing, keep planted during stance
+          dy += -swingPhase * 0.10 * motionScale; // foot rises during swing
+          dy += -backKick * 0.06 * motionScale; // heel kick-up at toe-off
+          // Depth: foot sweeps forward during swing, backward at push-off
+          dz = legSin * 0.12 * motionScale;
+          // Minimal lateral
+          dx = legSin * 0.005 * motionScale;
           break;
         }
       }
 
-      // Apply confidence degradation from noise level
+      // Confidence degradation from noise
       const baseConf = BASE_CONFIDENCE[i];
       const noiseConfPenalty =
         this.simulator.getSimulationState().signalNoiseLevel === 'noisy'
@@ -214,6 +244,7 @@ export class DemoPoseGenerator {
         name,
         x: parseFloat((bx + dx + fatigueJitter).toFixed(4)),
         y: parseFloat((by + dy).toFixed(4)),
+        z: parseFloat((bz + dz).toFixed(4)),
         confidence: parseFloat(conf.toFixed(3)),
       };
     });

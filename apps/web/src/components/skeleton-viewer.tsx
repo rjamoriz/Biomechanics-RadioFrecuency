@@ -286,7 +286,7 @@ export function SkeletonViewer({ keypoints, modelConfidence, className }: Skelet
       data-synthetic="true"
     >
       <Canvas
-        camera={{ position: [0, 0.9, 3], fov: 50 }}
+        camera={{ position: [0.6, 1.0, 2.8], fov: 50 }}
         gl={{ antialias: true }}
         style={{ background: '#0f172a' }}
       >
