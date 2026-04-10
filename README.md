@@ -391,6 +391,7 @@ See [docs/](docs/) for detailed guides:
 
 - [Architecture](docs/architecture.md)
 - [Product Scope](docs/product_scope.md)
+- [Quantum & Bloch Sphere Analysis](docs/quantum_bloch_sphere_analysis.md)
 - [Sensing Limitations](docs/sensing_limitations.md)
 - [Inferred Views](docs/inferred_views.md)
 - [Hardware Setup](docs/hardware_setup.md)
