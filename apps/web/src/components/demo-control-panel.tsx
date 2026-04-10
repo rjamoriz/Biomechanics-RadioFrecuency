@@ -72,7 +72,7 @@ export function DemoControlPanel({
                 Athlete Profile
               </label>
               <select
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900"
                 value={demoState?.profile?.name ?? 'recreational'}
                 onChange={(e) =>
                   onDemoControl('set-profile', { name: e.target.value })
@@ -94,7 +94,7 @@ export function DemoControlPanel({
               <div className="flex gap-2">
                 <select
                   id="demo-protocol"
-                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900"
                   defaultValue="progressive-5k"
                 >
                   {PROTOCOLS.map((p) => (
@@ -187,7 +187,7 @@ export function DemoControlPanel({
                 Signal Noise
               </label>
               <select
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900"
                 value={demoState?.signalNoiseLevel ?? 'clean'}
                 onChange={(e) =>
                   onDemoControl('set-noise', { level: e.target.value })
