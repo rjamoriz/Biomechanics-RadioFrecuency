@@ -132,6 +132,8 @@ export class DemoSimulatorService {
       treadmillSpeedKmh: speedKmh,
       treadmillInclinePercent: treadmill.inclinePercent,
       isRunning: treadmill.isRunning,
+      heightCm: this.profile.heightCm,
+      weightKg: this.profile.weightKg,
     };
   }
 
@@ -148,6 +150,23 @@ export class DemoSimulatorService {
   setProfile(profile: AthleteSimProfile): void {
     this.profile = { ...profile };
     this.logger.log(`Athlete profile set: ${profile.name}`);
+  }
+
+  /** Update runner anthropometrics without changing the full profile */
+  setAnthropometrics(heightCm: number, weightKg: number): void {
+    this.profile.heightCm = Math.max(100, Math.min(250, heightCm));
+    this.profile.weightKg = Math.max(20, Math.min(200, weightKg));
+    this.logger.log(
+      `Anthropometrics updated: ${this.profile.heightCm}cm / ${this.profile.weightKg}kg`,
+    );
+  }
+
+  /** Get current runner anthropometrics for force computation */
+  getRunnerAnthropometrics(): { heightCm: number; weightKg: number } {
+    return {
+      heightCm: this.profile.heightCm,
+      weightKg: this.profile.weightKg,
+    };
   }
 
   reset(): void {

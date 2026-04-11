@@ -25,6 +25,25 @@ export interface InferredMotionFrame {
   experimental: boolean;
   signalQualityScore: number;
   validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  estimatedForces?: EstimatedRunningForces;
+}
+
+/** Estimated running forces — synthetic proxy values, NOT clinical-grade. */
+export interface EstimatedRunningForces {
+  groundReactionForceN: number;
+  brakingForceN: number;
+  propulsiveForceN: number;
+  impactLoadingRateNPerS: number;
+  muscleForcesN: {
+    quadricepsPeak: number;
+    hamstringsPeak: number;
+    gastrocnemiusPeak: number;
+    gluteMaxPeak: number;
+    tibialisAnteriorPeak: number;
+  };
+  runnerWeightN: number;
+  speedKmh: number;
+  disclaimer: string;
 }
 
 export type SyntheticViewType =

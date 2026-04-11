@@ -25,6 +25,8 @@ export function DemoControlPanel({
   const [speed, setSpeed] = useState(8);
   const [incline, setIncline] = useState(0);
   const [fatigueRate, setFatigueRate] = useState(50);
+  const [height, setHeight] = useState(175);
+  const [weight, setWeight] = useState(78);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -160,6 +162,54 @@ export function DemoControlPanel({
             </div>
           </div>
 
+          {/* Row 2b: Runner anthropometrics (height / weight) */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 flex items-center justify-between text-xs font-medium text-slate-700">
+                <span>Height</span>
+                <span className="text-slate-500">{height} cm</span>
+              </label>
+              <input
+                type="range"
+                min={150}
+                max={210}
+                step={1}
+                value={height}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setHeight(v);
+                  onDemoControl('set-anthropometrics', {
+                    heightCm: v,
+                    weightKg: weight,
+                  });
+                }}
+                className="w-full accent-amber-600"
+              />
+            </div>
+            <div>
+              <label className="mb-1 flex items-center justify-between text-xs font-medium text-slate-700">
+                <span>Weight</span>
+                <span className="text-slate-500">{weight} kg</span>
+              </label>
+              <input
+                type="range"
+                min={40}
+                max={130}
+                step={1}
+                value={weight}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setWeight(v);
+                  onDemoControl('set-anthropometrics', {
+                    heightCm: height,
+                    weightKg: v,
+                  });
+                }}
+                className="w-full accent-amber-600"
+              />
+            </div>
+          </div>
+
           {/* Row 3: Fatigue + Noise + Reset */}
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
@@ -208,6 +258,8 @@ export function DemoControlPanel({
                   setSpeed(8);
                   setIncline(0);
                   setFatigueRate(50);
+                  setHeight(175);
+                  setWeight(78);
                 }}
                 className="flex w-full items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               >

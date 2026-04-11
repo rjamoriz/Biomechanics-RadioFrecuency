@@ -32,6 +32,22 @@ export interface InferredMotionFrame {
   signalQualityScore: number;
   validationStatus: string;
   disclaimer: string;
+  estimatedForces?: {
+    groundReactionForceN: number;
+    brakingForceN: number;
+    propulsiveForceN: number;
+    impactLoadingRateNPerS: number;
+    muscleForcesN: {
+      quadricepsPeak: number;
+      hamstringsPeak: number;
+      gastrocnemiusPeak: number;
+      gluteMaxPeak: number;
+      tibialisAnteriorPeak: number;
+    };
+    runnerWeightN: number;
+    speedKmh: number;
+    disclaimer: string;
+  };
 }
 
 export interface VitalEstimate {
@@ -62,6 +78,8 @@ export interface SimulationState {
   treadmillSpeedKmh: number;
   treadmillInclinePercent: number;
   isRunning: boolean;
+  heightCm: number;
+  weightKg: number;
   profile: {
     name: string;
     restingCadenceSpm: number;
@@ -75,7 +93,8 @@ export type DemoControlAction =
   | 'set-fatigue'
   | 'set-noise'
   | 'reset'
-  | 'start-protocol';
+  | 'start-protocol'
+  | 'set-anthropometrics';
 
 export function useGatewaySocket() {
   const socketRef = useRef<Socket | null>(null);

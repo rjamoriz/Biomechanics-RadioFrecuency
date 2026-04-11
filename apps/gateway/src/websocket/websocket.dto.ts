@@ -22,7 +22,7 @@ export interface WsInferredMotionFrame {
   event: 'inferred-motion';
   sessionId?: string;
   timestamp: number;
-  keypoints2D: Array<{ name: string; x: number; y: number; confidence: number }>;
+  keypoints2D: Array<{ name: string; x: number; y: number; z?: number; confidence: number }>;
   modelVersion: string;
   experimental: true;
   confidence: number;
@@ -30,6 +30,22 @@ export interface WsInferredMotionFrame {
   signalQualityScore: number;
   validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
   disclaimer: string;
+  estimatedForces?: {
+    groundReactionForceN: number;
+    brakingForceN: number;
+    propulsiveForceN: number;
+    impactLoadingRateNPerS: number;
+    muscleForcesN: {
+      quadricepsPeak: number;
+      hamstringsPeak: number;
+      gastrocnemiusPeak: number;
+      gluteMaxPeak: number;
+      tibialisAnteriorPeak: number;
+    };
+    runnerWeightN: number;
+    speedKmh: number;
+    disclaimer: string;
+  };
 }
 
 export interface WsSessionEvent {

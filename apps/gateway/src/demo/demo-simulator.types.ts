@@ -9,6 +9,7 @@ export interface AthleteSimProfile {
   restingBreathingBpm: number;
   restingHeartRateBpm: number;
   fatigueResistance: number; // 0..1, 1 = very fatigue resistant
+  heightCm: number;
   weightKg: number;
 }
 
@@ -26,6 +27,8 @@ export interface SimulationState {
   treadmillSpeedKmh: number;
   treadmillInclinePercent: number;
   isRunning: boolean;
+  heightCm: number;
+  weightKg: number;
 }
 
 export type SignalNoiseLevel = 'clean' | 'moderate' | 'noisy';
@@ -56,7 +59,8 @@ export const ATHLETE_PROFILES: Record<string, AthleteSimProfile> = {
     restingBreathingBpm: 12,
     restingHeartRateBpm: 55,
     fatigueResistance: 0.85,
-    weightKg: 65,
+    heightCm: 178,
+    weightKg: 68,
   },
   recreational: {
     name: 'recreational',
@@ -68,7 +72,8 @@ export const ATHLETE_PROFILES: Record<string, AthleteSimProfile> = {
     restingBreathingBpm: 15,
     restingHeartRateBpm: 68,
     fatigueResistance: 0.55,
-    weightKg: 75,
+    heightCm: 175,
+    weightKg: 78,
   },
   'rehab-patient': {
     name: 'rehab-patient',
@@ -80,6 +85,7 @@ export const ATHLETE_PROFILES: Record<string, AthleteSimProfile> = {
     restingBreathingBpm: 18,
     restingHeartRateBpm: 78,
     fatigueResistance: 0.3,
+    heightCm: 170,
     weightKg: 85,
   },
 };

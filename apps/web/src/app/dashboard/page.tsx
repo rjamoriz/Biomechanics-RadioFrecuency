@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { SkeletonViewerCard } from '@/components/skeleton-viewer-card';
 import { DemoControlPanel } from '@/components/demo-control-panel';
+import { ForceAnalysisPanel } from '@/components/force-analysis-panel';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
 import { Activity, Heart, Radio, Timer, Users, Wind } from 'lucide-react';
 
@@ -166,6 +167,11 @@ export default function DashboardPage() {
           }
           experimental={inferredFrame.experimental}
         />
+      )}
+
+      {/* Estimated Running Forces (experimental proxy) */}
+      {inferredFrame?.estimatedForces && (
+        <ForceAnalysisPanel forces={inferredFrame.estimatedForces} />
       )}
     </div>
   );

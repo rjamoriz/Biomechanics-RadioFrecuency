@@ -96,6 +96,7 @@ export class LiveGateway
           name: kp.name,
           x: kp.x,
           y: kp.y,
+          z: kp.z ?? 0,
           confidence: kp.confidence,
         })) ?? [],
         modelVersion: frame.modelVersion,
@@ -105,6 +106,7 @@ export class LiveGateway
         signalQualityScore: frame.signalQualityScore,
         validationStatus: frame.validationStatus ?? 'experimental',
         disclaimer: SYNTHETIC_VIEW_DISCLAIMER,
+        estimatedForces: frame.estimatedForces,
       };
 
       this.server.emit('inferred-motion', payload);
@@ -271,7 +273,7 @@ export class LiveGateway
     @ConnectedSocket() client: Socket,
     @MessageBody()
     data: {
-      action: 'set-profile' | 'set-fatigue' | 'set-noise' | 'reset' | 'start-protocol';
+      action: 'set-profile' | 'set-fatigue' | 'set-noise' | 'reset' | 'start-protocol' | 'set-anthropometrics';
       payload?: Record<string, unknown>;
     },
   ) {
@@ -328,6 +330,16 @@ export class LiveGateway
         this.demoSimulator.reset();
         this.treadmillService.stopProtocol();
         return { status: 'ok', message: 'Demo reset' };
+      }
+
+      case 'set-anthropometrics': {
+        const heightCm = data.payload?.heightCm as number | undefined;
+        const weightKg = data.payload?.weightKg as number | undefined;
+        if (heightCm !== undefined && weightKg !== undefined) {
+          this.demoSimulator.setAnthropometrics(heightCm, weightKg);
+          return { status: 'ok', heightCm, weightKg };
+        }
+        return { status: 'error', message: 'Missing heightCm or weightKg' };
       }
 
       default:
