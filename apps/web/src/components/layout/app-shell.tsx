@@ -13,10 +13,12 @@ import {
   FileText,
   Crosshair,
   ListChecks,
+  Atom,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Activity },
+  { href: '/quantum', label: 'Quantum Observatory', icon: Atom },
   { href: '/athletes', label: 'Athletes', icon: Users },
   { href: '/stations', label: 'Stations', icon: Radio },
   { href: '/sessions', label: 'Sessions', icon: Timer },
