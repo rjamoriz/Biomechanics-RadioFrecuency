@@ -319,18 +319,65 @@ flowchart TB
     style Detection fill:#e11d48,stroke:#be123c,color:#fff
 ```
 
-### D3.js Interactive Visualizations
+### Multi-Qubit Quantum Observatory Dashboard
 
-The web frontend (`apps/web`) includes D3.js-powered interactive visualizations for the quantum computation layer, available in the observatory dashboard:
+The web frontend (`apps/web/src/app/quantum/page.tsx`) renders a real-time multi-qubit quantum-inspired observatory using Three.js and react-three-fiber. It maps live CSI metrics onto four interactive Bloch spheres with entanglement visualization, density matrix analysis, and Grover-inspired state classification.
 
-| Visualization | D3.js Component | Description |
-|--------------|-----------------|-------------|
-| **Bloch Sphere** | `d3-bloch-sphere` | 3D interactive qubit state visualization with rotation and zoom |
-| **Circuit Diagram** | `d3-quantum-circuit` | Gate-level circuit rendering with depth and qubit annotations |
-| **Probability Histogram** | `d3-prob-distribution` | Measurement outcome probabilities with confidence intervals |
-| **Kernel Heatmap** | `d3-kernel-matrix` | Quantum kernel similarity matrix with fatigue drift highlighting |
-| **Purity Timeline** | `d3-purity-chart` | Real-time quantum purity (signal quality) over session duration |
-| **State Tomography** | `d3-density-matrix` | Density matrix magnitude visualization as color-mapped grid |
+#### Four-Qubit Bloch Sphere Array
+
+```
+  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+  │ Signal  │   │ Motion  │   │  Envir  │   │Entangled│
+  │  Q₀     │   │  Q₁     │   │  Q₂     │   │  Q₃     │
+  │  ⚛️     │   │  ⚛️     │   │  ⚛️     │   │  ⚛️     │
+  │ (cyan)  │   │ (green) │   │ (amber) │   │(purple) │
+  └────┬────┘   └────┬────┘   └─────────┘   └────┬────┘
+       │              │                           │
+       └──── ⊗ ───────┘── tensor product ────────►│
+             │                                    │
+        Concurrence C = 2|α₀₀α₁₁ − α₀₁α₁₀|     │
+        Von Neumann S = −Tr(ρ log₂ ρ)            │
+        Purity γ = Tr(ρ²)                        │
+```
+
+| Qubit | Symbol | Drives From | Bloch Mapping |
+|-------|--------|-------------|---------------|
+| **Signal** (Q₀) | `\|ψ_S⟩` | CSI signal quality, gait cycle phase | θ = signal quality, φ = gait angle |
+| **Motion** (Q₁) | `\|ψ_M⟩` | Symmetry proxy, cadence modulation | θ = symmetry, φ = phase-shifted cadence |
+| **Environment** (Q₂) | `\|ψ_E⟩` | Environmental noise, Brownian drift | θ = 1 − signal quality, φ = noise drift |
+| **Entangled** (Q₃) | `\|ψ_A⊗B⟩` | Tensor product of Q₀ ⊗ Q₁ | Reduced ρ via partial trace |
+
+#### Dashboard Visualization Panels
+
+| Panel | Technology | Description |
+|-------|-----------|-------------|
+| **Bloch Sphere Array** | Three.js / react-three-fiber | 4 interactive 3D spheres with animated Bloch vectors, trail history, axis labels (\|0⟩, \|1⟩, +, −, +i, −i), and entanglement connection lines |
+| **Entanglement Halo** | Three.js torus geometry | Rotating torus on Q₃ sphere, thickness scaled by concurrence C |
+| **State Vector** | React | \|ψ⟩ = α₀₀\|00⟩ + α₀₁\|01⟩ + α₁₀\|10⟩ + α₁₁\|11⟩ with live amplitudes |
+| **Density Matrix Heatmap** | SVG | 4×4 ρ = \|ψ⟩⟨ψ\| with magnitude color mapping |
+| **Circular Gauges** | SVG | Concurrence, Von Neumann entropy, purity with animated arcs |
+| **Coherence Waveform** | SVG polyline | 3-channel overlay: Signal, Motion, Environment coherence (\|⟨B⟩\|) |
+| **Entanglement Dynamics** | SVG polyline | Concurrence vs. subsystem entropy over time |
+| **Grover Search** | React | 16-state hypothesis classification with amplitude amplification bars |
+| **Quantum Circuit** | SVG | H → Rᵧ → CNOT → Rz → M pipeline diagram |
+| **Qubit Cards** | React | Per-qubit α\|0⟩ + β\|1⟩ coefficients with Bloch coordinates |
+
+#### Quantum Math Utilities
+
+The page includes a complete quantum math library for real-time computation:
+
+- **Complex arithmetic:** `cMul`, `cConj`, `cAbs`, `cAdd`, `cSub`, `cScale`
+- **State preparation:** `qubitState(θ, φ)` → [α, β] where |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ}sin(θ/2)|1⟩
+- **Tensor product:** `tensorProduct(a, b)` → 4-component 2-qubit state
+- **Entanglement mixing:** `applyEntanglement(state, c)` → blend separable toward Bell state
+- **Concurrence:** C = 2|α₀₀·α₁₁ − α₀₁·α₁₀|
+- **Partial trace:** `partialTrace(state)` → 2×2 reduced density matrix for qubit 0
+- **Density matrix:** `densityMatrix4x4(state)` → full ρ = |ψ⟩⟨ψ|
+- **Von Neumann entropy:** S = −Tr(ρ log₂ ρ) via eigenvalue decomposition
+- **Purity:** γ = Tr(ρ²)
+- **Bloch recovery:** `blochFromRho(ρ)` → Bloch vector from reduced density matrix
+
+> **Quantum-inspired disclaimer:** This visualization maps classical Wi-Fi CSI signals onto quantum mathematical representations. It does not involve actual quantum hardware. All quantum metrics carry `experimental` validation status.
 
 ### Quantum Circuit Notation Reference
 
