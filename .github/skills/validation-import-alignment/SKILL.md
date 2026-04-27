@@ -44,7 +44,7 @@ When implementing validation:
 4. Document any assumptions used for alignment.
 5. Compute comparable summaries only for metrics that are meaningfully comparable.
 6. Generate validation reports with errors, caveats, and confidence context.
-7. Preserve whether the output remains experimental or becomes station-validated / externally validated.
+7. Preserve whether the output remains experimental or becomes station_validated / externally validated.
 
 ## Comparison rules
 

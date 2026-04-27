@@ -10,20 +10,20 @@ import java.util.UUID;
 @RequestMapping("/api/validations")
 public class ValidationController {
 
-    private final ValidationRunRepository repository;
+    private final ValidationService service;
 
-    public ValidationController(ValidationRunRepository repository) {
-        this.repository = repository;
+    public ValidationController(ValidationService service) {
+        this.service = service;
     }
 
     @GetMapping("/session/{sessionId}")
     public List<ValidationRun> bySession(@PathVariable UUID sessionId) {
-        return repository.findBySessionId(sessionId);
+        return service.bySession(sessionId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ValidationRun create(@RequestBody ValidationRun run) {
-        return repository.save(run);
+        return service.create(run);
     }
 }

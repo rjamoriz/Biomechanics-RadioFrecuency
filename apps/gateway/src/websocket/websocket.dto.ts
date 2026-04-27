@@ -9,11 +9,12 @@ export interface WsRealtimeMetrics {
   symmetryProxy: number;
   contactTimeProxy: number;
   flightTimeProxy: number;
+  formStabilityScore: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   metricConfidence: number;
   confidenceLevel: 'high' | 'medium' | 'low';
-  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  validationStatus: 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
   speedKmh: number;
   inclinePercent: number;
 }
@@ -28,7 +29,7 @@ export interface WsInferredMotionFrame {
   confidence: number;
   confidenceLevel: 'high' | 'medium' | 'low';
   signalQualityScore: number;
-  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  validationStatus: 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
   disclaimer: string;
   estimatedForces?: {
     groundReactionForceN: number;
@@ -231,5 +232,47 @@ export interface WsAdaptiveClassification {
     direction: 'above' | 'below' | 'normal';
   }>;
   sessionDrift: Record<string, number>;
+  disclaimer: string;
+}
+
+// ─── Injury Risk ─────────────────────────────────────────────────────
+
+export interface WsArticulationRisk {
+  joint: 'knee_left' | 'knee_right' | 'hip_left' | 'hip_right' | 'ankle_left' | 'ankle_right' | 'lumbar';
+  riskScore: number;
+  riskLevel: 'low' | 'moderate' | 'elevated' | 'high' | 'critical';
+  confidence: number;
+  primaryDriver: string;
+}
+
+export interface WsInjuryRiskFactor {
+  id: string;
+  label: string;
+  value: number;
+  weight: number;
+  elevated: boolean;
+  description: string;
+}
+
+/**
+ * Server → Client: realtime injury risk assessment.
+ *
+ * DISCLAIMER: These are proxy-based experimental estimates derived from
+ * Wi-Fi CSI signals. Not for clinical or medical use.
+ */
+export interface WsInjuryRiskUpdate {
+  event: 'injury-risk';
+  sessionId?: string;
+  timestamp: number;
+  overallRiskScore: number;
+  overallRiskLevel: 'low' | 'moderate' | 'elevated' | 'high' | 'critical';
+  articulationRisks: WsArticulationRisk[];
+  riskFactors: WsInjuryRiskFactor[];
+  modelConfidence: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  signalQualityScore: number;
+  validationStatus: 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
+  usedInferredJointAngles: boolean;
+  experimental: true;
   disclaimer: string;
 }

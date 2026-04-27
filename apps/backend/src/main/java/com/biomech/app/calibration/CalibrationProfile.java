@@ -3,17 +3,27 @@ package com.biomech.app.calibration;
 import com.biomech.app.common.BaseEntity;
 import com.biomech.app.common.CalibrationStatus;
 import com.biomech.app.station.Station;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Table(name = "calibration_profiles")
 public class CalibrationProfile extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "station_id", nullable = false)
     private Station station;
+
+    /** Exposes only the station UUID in JSON — avoids lazy-load during serialization. */
+    @JsonProperty("stationId")
+    public UUID getStationId() {
+        return station != null ? station.getId() : null;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

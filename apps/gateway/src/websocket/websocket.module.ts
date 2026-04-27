@@ -7,6 +7,7 @@ import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 import { AutonomousModule } from '../autonomous/autonomous.module';
 import { RecordingModule } from '../recording/recording.module';
 import { DemoModule } from '../demo/demo.module';
+import { InjuryRiskModule } from '../injury-risk/injury-risk.module';
 
 const isDemoMode = process.env.DEMO_MODE === 'true';
 
@@ -18,6 +19,7 @@ const isDemoMode = process.env.DEMO_MODE === 'true';
     VitalSignsModule,
     AutonomousModule,
     RecordingModule,
+    InjuryRiskModule,
     ...(isDemoMode ? [DemoModule] : []),
   ],
   providers: [LiveGateway],

@@ -13,10 +13,16 @@ public class IngestionController {
 
     private static final Logger log = LoggerFactory.getLogger(IngestionController.class);
 
+    private final IngestionService service;
+
+    public IngestionController(IngestionService service) {
+        this.service = service;
+    }
+
     @PostMapping("/metrics")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void ingestMetrics(@RequestBody List<IngestionPayload> payloads) {
-        log.info("Received {} metric data points from gateway", payloads.size());
-        // TODO: persist to DerivedMetricSeries
+        log.debug("Ingesting {} metric data points from gateway", payloads.size());
+        service.persist(payloads);
     }
 }

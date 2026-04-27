@@ -211,7 +211,7 @@ class StationAdapter:
             "notes": "...",
             "adapter_weights": "base64-encoded",
             "experimental": true,
-            "validation_status": "station-validated"
+            "validation_status": "station_validated"
         }
         """
         path = Path(path)
@@ -232,7 +232,7 @@ class StationAdapter:
             "notes": self.notes,
             "adapter_weights": weights_b64,
             "experimental": True,
-            "validation_status": "station-validated",
+            "validation_status": "station_validated",
         }
 
         with open(path, "w") as f:

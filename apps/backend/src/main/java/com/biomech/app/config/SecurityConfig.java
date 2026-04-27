@@ -45,6 +45,8 @@ public class SecurityConfig {
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/ingestion/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/inferred-motion/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/calibrations/station/*/active").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

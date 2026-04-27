@@ -13,6 +13,7 @@ export interface RealtimeMetrics {
   symmetryProxy: number;
   contactTimeProxy: number;
   flightTimeProxy: number;
+  formStabilityScore: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   metricConfidence: number;

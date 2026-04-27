@@ -28,7 +28,7 @@ from torch.autograd import Function
 
 logger = logging.getLogger(__name__)
 
-VALIDATION_STATES = ("unvalidated", "experimental", "station-validated", "externally-validated")
+VALIDATION_STATES = ("unvalidated", "experimental", "station_validated", "externally_validated")
 
 
 # ── Gradient Reversal ───────────────────────────────────────────────── #

@@ -9,7 +9,7 @@ type InferredMotionFrame = {
   schemaVersion: string;
   viewType?: "front" | "rear" | "left-lateral" | "right-lateral" | "orbit";
   confidence: number;
-  validationState: "unvalidated" | "experimental" | "station-validated" | "externally-validated";
+  validationState: "unvalidated" | "experimental" | "station_validated" | "externally_validated";
   signalQualityScore?: number;
   joints3d?: Array<{ name: string; x: number; y: number; z: number; confidence?: number }>;
   keypoints2d?: Array<{ name: string; x: number; y: number; confidence?: number }>;

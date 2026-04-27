@@ -20,7 +20,7 @@ Architecture:
 All outputs are EXPERIMENTAL proxy estimates derived from Wi-Fi CSI sensing.
 Every prediction should be accompanied by confidence, signal quality context,
 calibration status, and validation state (unvalidated / experimental /
-station-validated / externally-validated) before being presented to end users.
+station_validated / externally_validated) before being presented to end users.
 """
 
 from __future__ import annotations

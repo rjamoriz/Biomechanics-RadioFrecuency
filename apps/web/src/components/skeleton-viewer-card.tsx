@@ -29,7 +29,7 @@ const SkeletonViewer = dynamic(
   },
 );
 
-type ValidationStatus = 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+type ValidationStatus = 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
 
 export interface SkeletonViewerCardProps {
   keypoints: SkeletonKeypoint[] | null;

@@ -24,7 +24,7 @@ export interface InferredMotionFrame {
   modelVersion: string;
   experimental: boolean;
   signalQualityScore: number;
-  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  validationStatus: 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
   estimatedForces?: EstimatedRunningForces;
 }
 

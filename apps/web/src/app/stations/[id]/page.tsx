@@ -5,12 +5,14 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useStation } from '@/hooks/use-stations';
-import { Pencil } from 'lucide-react';
+import { useCalibrationActive } from '@/hooks/use-calibration';
+import { Pencil, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function StationDetailPage() {
   const params = useParams<{ id: string }>();
   const { data: station, isLoading } = useStation(params.id);
+  const { data: isCalibrated } = useCalibrationActive(params.id);
 
   if (isLoading) {
     return <p className="text-sm text-slate-500">Loading station...</p>;
@@ -24,6 +26,16 @@ export default function StationDetailPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">{station.name}</h1>
         <div className="flex items-center gap-2">
+          <Link href={`/stations/${params.id}/calibrate`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className={isCalibrated ? 'border-emerald-300 text-emerald-700' : 'border-amber-300 text-amber-700'}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {isCalibrated ? 'Recalibrate' : 'Calibrate'}
+            </Button>
+          </Link>
           <Link href={`/stations/${params.id}/edit`}>
             <Button variant="secondary" size="sm">
               <Pencil className="h-3.5 w-3.5" />

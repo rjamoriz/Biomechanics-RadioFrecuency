@@ -24,6 +24,16 @@ export function CardHeader({
   return <div className={cn('mb-4', className)}>{children}</div>;
 }
 
+export function CardContent({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={cn('space-y-4', className)}>{children}</div>;
+}
+
 export function CardTitle({
   children,
   className,

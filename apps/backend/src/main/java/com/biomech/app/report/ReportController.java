@@ -9,14 +9,14 @@ import java.util.UUID;
 @RequestMapping("/api/reports")
 public class ReportController {
 
-    private final ReportArtifactRepository repository;
+    private final ReportService service;
 
-    public ReportController(ReportArtifactRepository repository) {
-        this.repository = repository;
+    public ReportController(ReportService service) {
+        this.service = service;
     }
 
     @GetMapping("/session/{sessionId}")
     public List<ReportArtifact> bySession(@PathVariable UUID sessionId) {
-        return repository.findBySessionId(sessionId);
+        return service.bySession(sessionId);
     }
 }

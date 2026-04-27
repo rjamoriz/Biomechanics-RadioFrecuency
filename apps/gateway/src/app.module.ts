@@ -14,6 +14,7 @@ import { HealthController } from './health/health.controller';
 import { DemoModule } from './demo/demo.module';
 import { AutonomousModule } from './autonomous/autonomous.module';
 import { RecordingModule } from './recording/recording.module';
+import { InjuryRiskModule } from './injury-risk/injury-risk.module';
 
 const isDemoMode = process.env.DEMO_MODE === 'true';
 
@@ -32,6 +33,7 @@ const isDemoMode = process.env.DEMO_MODE === 'true';
     InferenceModule,
     AutonomousModule,
     RecordingModule,
+    InjuryRiskModule,
     ...(isDemoMode ? [DemoModule] : []),
   ],
   controllers: [HealthController],

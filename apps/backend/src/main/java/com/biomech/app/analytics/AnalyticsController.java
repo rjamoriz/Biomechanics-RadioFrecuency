@@ -9,20 +9,20 @@ import java.util.UUID;
 @RequestMapping("/api/analytics")
 public class AnalyticsController {
 
-    private final DerivedMetricSeriesRepository repository;
+    private final AnalyticsService service;
 
-    public AnalyticsController(DerivedMetricSeriesRepository repository) {
-        this.repository = repository;
+    public AnalyticsController(AnalyticsService service) {
+        this.service = service;
     }
 
     @GetMapping("/session/{sessionId}")
     public List<DerivedMetricSeries> bySession(@PathVariable UUID sessionId) {
-        return repository.findBySessionId(sessionId);
+        return service.bySession(sessionId);
     }
 
     @GetMapping("/session/{sessionId}/metric/{metricName}")
     public List<DerivedMetricSeries> byMetric(@PathVariable UUID sessionId,
                                                @PathVariable String metricName) {
-        return repository.findBySessionIdAndMetricName(sessionId, metricName);
+        return service.bySessionAndMetric(sessionId, metricName);
     }
 }

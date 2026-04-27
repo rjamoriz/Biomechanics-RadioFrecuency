@@ -18,6 +18,10 @@ import { SYNTHETIC_VIEW_DISCLAIMER } from '../pose/pose.types';
 import { DemoSimulatorService } from '../demo/demo-simulator.service';
 import { AutonomousService } from '../autonomous/autonomous.service';
 import { LocalRecorderService } from '../recording/local-recorder.service';
+import { InjuryRiskService } from '../injury-risk/injury-risk.service';
+import { BackendClientService } from '../backend-client/backend-client.service';
+import { InferredMotionFrame } from '../pose/pose.types';
+import { InjuryRiskSnapshot } from '../injury-risk/injury-risk.types';
 import {
   ATHLETE_PROFILES,
   DEMO_PROTOCOLS,
@@ -36,6 +40,7 @@ import {
   WsMultiChannelState,
   WsFusedMetrics,
   WsAdaptiveClassification,
+  WsInjuryRiskUpdate,
 } from './websocket.dto';
 
 @WsGateway({
@@ -45,8 +50,14 @@ import {
 export class LiveGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
+  private static readonly MAX_INFERRED_MOTION_RECORDING_FRAMES = 2_000;
+  private static readonly MAX_INJURY_RISK_RECORDING_SNAPSHOTS = 2_000;
+
   private readonly logger = new Logger(LiveGateway.name);
   private demoStateInterval: ReturnType<typeof setInterval> | null = null;
+  private inferredMotionRecordingSessionId: string | null = null;
+  private inferredMotionRecordingFrames: InferredMotionFrame[] = [];
+  private injuryRiskRecordingSnapshots: InjuryRiskSnapshot[] = [];
 
   @WebSocketServer()
   server!: Server;
@@ -58,6 +69,8 @@ export class LiveGateway
     private readonly vitalSignsService: VitalSignsService,
     private readonly autonomousService: AutonomousService,
     private readonly recorderService: LocalRecorderService,
+    private readonly injuryRiskService: InjuryRiskService,
+    private readonly backendClient: BackendClientService,
     @Optional() @Inject(DemoSimulatorService)
     private readonly demoSimulator?: DemoSimulatorService,
   ) {}
@@ -75,6 +88,7 @@ export class LiveGateway
         symmetryProxy: metrics.symmetryProxy,
         contactTimeProxy: metrics.contactTimeProxy,
         flightTimeProxy: metrics.flightTimeProxy,
+        formStabilityScore: metrics.formStabilityScore,
         fatigueDriftScore: metrics.fatigueDriftScore,
         signalQualityScore: metrics.signalQualityScore,
         metricConfidence: metrics.metricConfidence,
@@ -85,12 +99,39 @@ export class LiveGateway
       };
 
       this.server.emit('metrics', payload);
+
+      // Derive and stream injury risk from the same metrics event
+      this.injuryRiskService.processMetrics(metrics);
+    });
+
+    // Stream injury risk updates
+    this.injuryRiskService.stream$.subscribe((snapshot) => {
+      const payload: WsInjuryRiskUpdate = {
+        event: 'injury-risk',
+        timestamp: snapshot.timestamp,
+        overallRiskScore: snapshot.overallRiskScore,
+        overallRiskLevel: snapshot.overallRiskLevel,
+        articulationRisks: snapshot.articulationRisks,
+        riskFactors: snapshot.riskFactors,
+        modelConfidence: snapshot.modelConfidence,
+        confidenceLevel: snapshot.confidenceLevel,
+        signalQualityScore: snapshot.signalQualityScore,
+        validationStatus: snapshot.validationStatus,
+        usedInferredJointAngles: snapshot.usedInferredJointAngles,
+        experimental: true,
+        disclaimer:
+          'Injury risk estimates are proxy-based experimental outputs. ' +
+          'Not for clinical or medical use.',
+      };
+      this.bufferInjuryRiskSnapshot(snapshot);
+      this.server.emit('injury-risk', payload);
     });
 
     // Stream inferred motion frames
     this.poseService.stream$.subscribe((frame) => {
       const payload: WsInferredMotionFrame = {
         event: 'inferred-motion',
+        sessionId: this.inferredMotionRecordingSessionId ?? undefined,
         timestamp: frame.timestamp,
         keypoints2D: frame.keypoints2D?.map((kp) => ({
           name: kp.name,
@@ -109,6 +150,7 @@ export class LiveGateway
         estimatedForces: frame.estimatedForces,
       };
 
+      this.bufferInferredMotionFrame(frame);
       this.server.emit('inferred-motion', payload);
     });
 
@@ -353,6 +395,9 @@ export class LiveGateway
     @MessageBody() data: { sessionId: string },
   ) {
     this.recorderService.startRecording(data.sessionId);
+    this.inferredMotionRecordingSessionId = data.sessionId;
+    this.inferredMotionRecordingFrames = [];
+    this.injuryRiskRecordingSnapshots = [];
     const summary = this.recorderService.getRecordingSummary();
     const payload: WsRecordingStatus = {
       event: 'recording-status',
@@ -367,8 +412,22 @@ export class LiveGateway
   }
 
   @SubscribeMessage('stop-recording')
-  handleStopRecording() {
+  async handleStopRecording() {
     const summary = this.recorderService.stopRecording();
+    const framesToPersist = this.inferredMotionRecordingFrames;
+    const riskSnapshotsToPersist = this.injuryRiskRecordingSnapshots;
+    this.inferredMotionRecordingSessionId = null;
+    this.inferredMotionRecordingFrames = [];
+    this.injuryRiskRecordingSnapshots = [];
+
+    if (summary.sessionId && framesToPersist.length > 0) {
+      await this.backendClient.postInferredMotionSeries(summary.sessionId, framesToPersist);
+    }
+    if (summary.sessionId && riskSnapshotsToPersist.length > 0) {
+      const riskSummary = this.buildInjuryRiskSummary(riskSnapshotsToPersist);
+      await this.backendClient.postInjuryRiskSummary(summary.sessionId, riskSummary);
+    }
+
     const payload: WsRecordingStatus = {
       event: 'recording-status',
       timestamp: Date.now(),
@@ -379,5 +438,81 @@ export class LiveGateway
     };
     this.server.emit('recording-status', payload);
     return { status: 'ok', summary };
+  }
+
+  private bufferInferredMotionFrame(frame: InferredMotionFrame): void {
+    if (!this.inferredMotionRecordingSessionId) {
+      return;
+    }
+
+    this.inferredMotionRecordingFrames.push(frame);
+    if (
+      this.inferredMotionRecordingFrames.length >
+      LiveGateway.MAX_INFERRED_MOTION_RECORDING_FRAMES
+    ) {
+      this.inferredMotionRecordingFrames.shift();
+    }
+  }
+
+  private bufferInjuryRiskSnapshot(snapshot: InjuryRiskSnapshot): void {
+    if (!this.inferredMotionRecordingSessionId) {
+      return;
+    }
+
+    this.injuryRiskRecordingSnapshots.push(snapshot);
+    if (
+      this.injuryRiskRecordingSnapshots.length >
+      LiveGateway.MAX_INJURY_RISK_RECORDING_SNAPSHOTS
+    ) {
+      this.injuryRiskRecordingSnapshots.shift();
+    }
+  }
+
+  private buildInjuryRiskSummary(snapshots: InjuryRiskSnapshot[]) {
+    const peak = snapshots.reduce((best, current) =>
+      current.overallRiskScore > best.overallRiskScore ? current : best,
+    );
+    const meanRiskScore =
+      snapshots.reduce((sum, s) => sum + s.overallRiskScore, 0) / snapshots.length;
+    const modelConfidence =
+      snapshots.reduce((sum, s) => sum + s.modelConfidence, 0) / snapshots.length;
+    const signalQualityScore =
+      snapshots.reduce((sum, s) => sum + s.signalQualityScore, 0) / snapshots.length;
+
+    const articulationPeaks: Record<string, number> = {};
+    const elevatedFactorCounts: Record<string, number> = {};
+
+    for (const snapshot of snapshots) {
+      for (const risk of snapshot.articulationRisks) {
+        const prev = articulationPeaks[risk.joint] ?? 0;
+        if (risk.riskScore > prev) {
+          articulationPeaks[risk.joint] = risk.riskScore;
+        }
+      }
+      for (const factor of snapshot.riskFactors) {
+        if (!factor.elevated) {
+          continue;
+        }
+        elevatedFactorCounts[factor.id] =
+          (elevatedFactorCounts[factor.id] ?? 0) + 1;
+      }
+    }
+
+    const dominantRiskFactors = Object.entries(elevatedFactorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id]) => id);
+
+    return {
+      peakRiskScore: peak.overallRiskScore,
+      peakRiskLevel: peak.overallRiskLevel,
+      meanRiskScore,
+      peakRiskTimestamp: peak.timestamp,
+      articulationPeaksJson: JSON.stringify(articulationPeaks),
+      dominantRiskFactors: JSON.stringify(dominantRiskFactors),
+      snapshotCount: snapshots.length,
+      modelConfidence,
+      signalQualityScore,
+    };
   }
 }

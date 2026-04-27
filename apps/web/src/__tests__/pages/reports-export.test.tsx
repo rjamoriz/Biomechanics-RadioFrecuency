@@ -10,7 +10,7 @@ const MOCK_SESSIONS = [
     athleteName: 'Maria Lopez',
     stationName: 'Station Alpha',
     protocolName: '5-Stage Incremental',
-    validationStatus: 'station-validated',
+    validationStatus: 'station_validated',
     startedAt: '2024-06-10T09:00:00Z',
     completedAt: '2024-06-10T09:30:00Z',
     durationSeconds: 1800,
@@ -52,7 +52,7 @@ jest.mock('@/lib/api', () => ({
         formStabilityScore: 0.91,
         fatigueDriftScore: 0.07,
         overallSignalQuality: 0.85,
-        validationStatus: 'station-validated',
+        validationStatus: 'station_validated',
         stages: [
           {
             name: 'Warm-up',
