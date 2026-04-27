@@ -1,6 +1,24 @@
 import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
-import { InferredMotionFrame } from './pose.types';
+import axios from 'axios';
+import { InferredMotionFrame, Keypoint2D } from './pose.types';
 import { DemoPoseGenerator } from '../demo/demo-pose-generator';
+
+interface MlPoseKeypoint {
+  name: string;
+  x: number;
+  y: number;
+  confidence: number;
+}
+
+interface MlPoseResponse {
+  timestamp: number;
+  keypoints: MlPoseKeypoint[];
+  model_version: string;
+  confidence: number;
+  signal_quality: number;
+  experimental: boolean;
+  validation_status: string;
+}
 
 /**
  * Adapter for pose inference. In production, this calls a local Python service
@@ -19,9 +37,27 @@ export class PoseInferenceAdapter {
 
   async infer(featureWindow: number[][]): Promise<InferredMotionFrame | null> {
     const demoMode = process.env.DEMO_MODE === 'true';
+    const inferenceUrl = process.env.INFERENCE_SERVICE_URL;
 
+    // Production mode with ML inference server
+    if (!demoMode && inferenceUrl) {
+      try {
+        const { data } = await axios.post<MlPoseResponse>(
+          `${inferenceUrl}/infer/pose`,
+          { amplitude_window: featureWindow, timestamp: Date.now() },
+          { timeout: 2000 },
+        );
+        return this.adaptMlResponse(data);
+      } catch (err) {
+        this.logger.warn(
+          `ML pose inference failed: ${(err as Error).message} — skipping frame`,
+        );
+        return null;
+      }
+    }
+
+    // Production mode without ML server — no pose available
     if (!demoMode) {
-      // TODO: call Python inference service or load ONNX model
       return null;
     }
 
@@ -31,6 +67,28 @@ export class PoseInferenceAdapter {
     }
 
     return this.generateDemoFrame(featureWindow);
+  }
+
+  private adaptMlResponse(data: MlPoseResponse): InferredMotionFrame {
+    const confidence = data.confidence ?? 0;
+    const keypoints2D: Keypoint2D[] = (data.keypoints ?? []).map((kp) => ({
+      name: kp.name,
+      x: kp.x,
+      y: kp.y,
+      confidence: kp.confidence,
+    }));
+    return {
+      timestamp: data.timestamp,
+      frameIndex: this.frameIndex++,
+      keypoints2D,
+      joints3D: null,
+      confidence,
+      confidenceLevel: confidence >= 0.7 ? 'high' : confidence >= 0.4 ? 'medium' : 'low',
+      modelVersion: data.model_version ?? 'ml-unknown',
+      experimental: true,
+      signalQualityScore: data.signal_quality ?? 0,
+      validationStatus: 'experimental',
+    };
   }
 
   private generateDemoFrame(

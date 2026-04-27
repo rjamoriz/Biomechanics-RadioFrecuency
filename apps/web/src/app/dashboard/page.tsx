@@ -162,8 +162,8 @@ export default function DashboardPage() {
             (inferredFrame.validationStatus as
               | 'unvalidated'
               | 'experimental'
-              | 'station-validated'
-              | 'externally-validated') ?? 'experimental'
+              | 'station_validated'
+              | 'externally_validated') ?? 'experimental'
           }
           experimental={inferredFrame.experimental}
         />

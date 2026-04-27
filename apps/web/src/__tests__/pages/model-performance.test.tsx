@@ -7,7 +7,7 @@ import ModelPerformancePage from '@/app/model-performance/page';
 const MOCK_PERFORMANCE = {
   modelVersion: 'v2.4.1',
   lastTrainedAt: '2024-07-15T10:30:00Z',
-  validationStatus: 'station-validated',
+  validationStatus: 'station_validated',
   accuracy: {
     cadenceMae: 1.82,
     strideRmse: 0.034,

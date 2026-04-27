@@ -138,6 +138,6 @@ class TestStationAdapterSerialization:
 
         assert payload["station_id"] == "station-test"
         assert payload["experimental"] is True
-        assert payload["validation_status"] == "station-validated"
+        assert payload["validation_status"] == "station_validated"
         assert "adapter_weights" in payload
         assert "calibration_date" in payload

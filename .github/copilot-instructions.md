@@ -75,7 +75,7 @@ Every estimated metric and inferred motion output should expose, when applicable
 Use validation states consistently:
 - unvalidated
 - experimental
-- station-validated
+- station_validated
 - externally validated
 
 ## Architecture rules

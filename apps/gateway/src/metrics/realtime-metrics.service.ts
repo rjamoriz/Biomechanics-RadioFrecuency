@@ -8,6 +8,7 @@ import { FatigueDrift } from './fatigue-drift';
 import { SignalQualityService } from './signal-quality.service';
 import { ConfidenceService } from './confidence.service';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
+import { CalibrationStateService } from '../backend-client/calibration-state.service';
 
 export interface RealtimeMetrics {
   timestamp: number;
@@ -16,12 +17,13 @@ export interface RealtimeMetrics {
   symmetryProxy: number;
   contactTimeProxy: number;
   flightTimeProxy: number;
+  formStabilityScore: number;
   fatigueDriftScore: number;
   signalQualityScore: number;
   packetRate: number;
   metricConfidence: number;
   confidenceLevel: 'high' | 'medium' | 'low';
-  validationStatus: 'unvalidated' | 'experimental' | 'station-validated' | 'externally-validated';
+  validationStatus: 'unvalidated' | 'experimental' | 'station_validated' | 'externally_validated';
 }
 
 @Injectable()
@@ -41,6 +43,7 @@ export class RealtimeMetricsService implements OnModuleInit {
     private readonly signalQuality: SignalQualityService,
     private readonly confidence: ConfidenceService,
     private readonly vitalSigns: VitalSignsService,
+    private readonly calibrationState: CalibrationStateService,
   ) {}
 
   onModuleInit() {
@@ -71,20 +74,28 @@ export class RealtimeMetricsService implements OnModuleInit {
         const conf = this.confidence.computeConfidence({
           signalQuality: this.signalQuality.getSignalQualityScore(),
           packetRate: this.signalQuality.getPacketRate(),
-          isCalibrated: false, // TODO: wire calibration state
+          isCalibrated: this.calibrationState.getIsCalibrated(),
           metricStability: 1 - this.fatigue.getFatigueDriftScore(),
         });
 
         const stepInterval = cadenceVal > 0 ? 60000 / cadenceVal : 0;
+        const symmetryProxy = Math.round(this.asymmetry.getSymmetryProxy() * 1000) / 1000;
+        const fatigueDriftScore = Math.round(this.fatigue.getFatigueDriftScore() * 1000) / 1000;
+        const formStabilityScore =
+          Math.round(
+            Math.max(0, Math.min(1, symmetryProxy * 0.6 + (1 - fatigueDriftScore) * 0.4)) *
+              1000,
+          ) / 1000;
 
         this.latestMetrics = {
           timestamp: Date.now(),
           estimatedCadence: cadenceVal,
           stepIntervalEstimate: Math.round(stepInterval),
-          symmetryProxy: Math.round(this.asymmetry.getSymmetryProxy() * 1000) / 1000,
+          symmetryProxy,
           contactTimeProxy: contactTimeVal,
           flightTimeProxy: Math.max(0, Math.round(stepInterval - contactTimeVal)),
-          fatigueDriftScore: Math.round(this.fatigue.getFatigueDriftScore() * 1000) / 1000,
+          formStabilityScore,
+          fatigueDriftScore,
           signalQualityScore: this.signalQuality.getSignalQualityScore(),
           packetRate: Math.round(this.signalQuality.getPacketRate()),
           metricConfidence: conf,

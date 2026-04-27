@@ -7,8 +7,8 @@
 export type ValidationStatus =
   | 'unvalidated'
   | 'experimental'
-  | 'station-validated'
-  | 'externally-validated';
+  | 'station_validated'
+  | 'externally_validated';
 
 /** Status of a sensing session. */
 export type SessionStatus =

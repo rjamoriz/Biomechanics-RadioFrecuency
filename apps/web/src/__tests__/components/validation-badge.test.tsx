@@ -12,13 +12,13 @@ describe('ValidationBadge', () => {
     expect(screen.getByText('Experimental')).toBeInTheDocument();
   });
 
-  it('renders "Station Validated" for station-validated status', () => {
-    render(<ValidationBadge status="station-validated" />);
+  it('renders "Station Validated" for station_validated status', () => {
+    render(<ValidationBadge status="station_validated" />);
     expect(screen.getByText('Station Validated')).toBeInTheDocument();
   });
 
-  it('renders "Externally Validated" for externally-validated status', () => {
-    render(<ValidationBadge status="externally-validated" />);
+  it('renders "Externally Validated" for externally_validated status', () => {
+    render(<ValidationBadge status="externally_validated" />);
     expect(screen.getByText('Externally Validated')).toBeInTheDocument();
   });
 });

@@ -101,7 +101,7 @@ Every estimated metric and every inferred motion output must include:
 Use these states consistently:
 - unvalidated
 - experimental
-- station-validated
+- station_validated
 - externally validated
 
 Do not silently upgrade experimental outputs into validated outputs.

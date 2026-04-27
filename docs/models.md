@@ -223,8 +223,8 @@ All model outputs are **estimated** or **inferred**, never exact:
 Validation states apply to model-derived metrics:
 - `unvalidated` — no external reference comparison
 - `experimental` — internal testing only
-- `station-validated` — validated at a specific station with known reference
-- `externally-validated` — validated against IMU, force plate, or video reference
+- `station_validated` — validated at a specific station with known reference
+- `externally_validated` — validated against IMU, force plate, or video reference
 
 ## Tests
 

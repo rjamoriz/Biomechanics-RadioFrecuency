@@ -31,7 +31,7 @@ except ImportError:
     ort = None  # type: ignore[assignment]
     HAS_ORT = False
 
-VALIDATION_STATES = ("unvalidated", "experimental", "station-validated", "externally-validated")
+VALIDATION_STATES = ("unvalidated", "experimental", "station_validated", "externally_validated")
 
 
 @dataclass

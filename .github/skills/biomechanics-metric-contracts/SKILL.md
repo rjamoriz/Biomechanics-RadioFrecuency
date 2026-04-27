@@ -61,7 +61,7 @@ Every derived metric should carry, when appropriate:
 Use explicit states consistently:
 - unvalidated
 - experimental
-- station-validated
+- station_validated
 - externally validated
 
 Do not auto-upgrade states without evidence and workflow support.
