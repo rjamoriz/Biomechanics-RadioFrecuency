@@ -2,6 +2,11 @@ spring:
   application:
     name: biomech-backend
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:biomech}
     username: ${DB_USER:biomech}
