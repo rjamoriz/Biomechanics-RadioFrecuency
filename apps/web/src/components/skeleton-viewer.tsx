@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import type { JointKinematicsFrame } from '@/hooks/use-gateway-socket';
 
 /* ──────────────────────────────────────────────
  * 3D Skeleton Viewer — COCO 17 keypoints.
@@ -74,9 +75,30 @@ const RIGHT_INDICES: Set<number> = new Set([
   COCO.RIGHT_KNEE, COCO.RIGHT_ANKLE,
 ]);
 
-const COLOR_LEFT = new THREE.Color('#3b82f6');   // blue-500
-const COLOR_RIGHT = new THREE.Color('#ef4444');   // red-500
-const COLOR_CENTER = new THREE.Color('#f8fafc');  // slate-50 (white-ish)
+const COLOR_LEFT   = new THREE.Color('#22d3ee'); // cyan-400  — left side
+const COLOR_RIGHT  = new THREE.Color('#f97316'); // orange-500 — right side (no conflict with risk-red)
+const COLOR_CENTER = new THREE.Color('#94a3b8'); // slate-400  — torso / midline
+
+// Mapping from JointKinematicsFrame joint keys to COCO 17 keypoint indices
+const JOINT_KEYPOINT_MAP: {
+  jointKey: keyof JointKinematicsFrame['joints'];
+  keypointIndex: number;
+  label: string;
+  maxForceN: number;
+}[] = [
+  { jointKey: 'leftHip',    keypointIndex: COCO.LEFT_HIP,    label: 'L Hip',    maxForceN: 2000 },
+  { jointKey: 'rightHip',   keypointIndex: COCO.RIGHT_HIP,   label: 'R Hip',    maxForceN: 2000 },
+  { jointKey: 'leftKnee',   keypointIndex: COCO.LEFT_KNEE,   label: 'L Knee',   maxForceN: 3000 },
+  { jointKey: 'rightKnee',  keypointIndex: COCO.RIGHT_KNEE,  label: 'R Knee',   maxForceN: 3000 },
+  { jointKey: 'leftAnkle',  keypointIndex: COCO.LEFT_ANKLE,  label: 'L Ankle',  maxForceN: 2500 },
+  { jointKey: 'rightAnkle', keypointIndex: COCO.RIGHT_ANKLE, label: 'R Ankle',  maxForceN: 2500 },
+];
+
+const RISK_HALO_COLOR: Record<string, THREE.Color> = {
+  normal:   new THREE.Color('#34d399'), // emerald-400 — brighter on dark bg
+  elevated: new THREE.Color('#fbbf24'), // amber-400   — brighter on dark bg
+  high:     new THREE.Color('#f87171'), // red-400     — clearly distinct from orange-right-side
+};
 
 export interface SkeletonKeypoint {
   x: number;
@@ -88,7 +110,66 @@ export interface SkeletonKeypoint {
 export interface SkeletonViewerProps {
   keypoints: SkeletonKeypoint[];
   modelConfidence: number;
+  jointKinematics?: JointKinematicsFrame | null;
   className?: string;
+}
+
+/** Pulsing halo sphere around a joint — size and color encode load magnitude and risk. */
+function JointLoadHalo({ position, forceN, riskLevel, maxForceN }: {
+  position: [number, number, number];
+  forceN: number;
+  riskLevel: 'normal' | 'elevated' | 'high';
+  maxForceN: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const color = RISK_HALO_COLOR[riskLevel] ?? RISK_HALO_COLOR.normal;
+  const baseRadius = 0.04 + (forceN / maxForceN) * 0.08;
+  const freq = riskLevel === 'high' ? 5 : riskLevel === 'elevated' ? 3.5 : 2.5;
+  const amplitude = riskLevel === 'high' ? 0.22 : 0.14;
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+    const pulse = 1 + Math.sin(clock.elapsedTime * freq) * amplitude;
+    meshRef.current.scale.setScalar(baseRadius * pulse);
+  });
+
+  return (
+    <mesh ref={meshRef} position={position}>
+      <sphereGeometry args={[1, 12, 12]} />
+      <meshStandardMaterial
+        color={color}
+        transparent
+        opacity={riskLevel === 'high' ? 0.5 : 0.28}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+/** Floating HTML label at a joint showing proxy force and risk level. */
+function JointLoadLabel({ position, label, forceN, angleProxyDeg, riskLevel }: {
+  position: [number, number, number];
+  label: string;
+  forceN: number;
+  angleProxyDeg: number;
+  riskLevel: 'normal' | 'elevated' | 'high';
+}) {
+  const colorClass =
+    riskLevel === 'high'     ? 'text-red-400' :
+    riskLevel === 'elevated' ? 'text-amber-400' :
+    'text-emerald-400';
+  return (
+    <Html
+      position={[position[0] + 0.18, position[1] + 0.04, position[2]]}
+      distanceFactor={3.5}
+    >
+      <div className="pointer-events-none select-none rounded bg-slate-900/85 px-1.5 py-0.5 backdrop-blur-sm leading-tight">
+        <div className="text-[9px] text-slate-400">{label}</div>
+        <div className={`text-[11px] font-bold ${colorClass}`}>{forceN.toFixed(0)} N</div>
+        <div className="text-[9px] text-slate-500">{angleProxyDeg.toFixed(0)}°</div>
+      </div>
+    </Html>
+  );
 }
 
 function getJointColor(index: number): THREE.Color {
@@ -105,7 +186,7 @@ function getBoneColor(a: number, b: number): THREE.Color {
 
 function getOpacity(confidence: number): number {
   if (confidence < 0.3) return 0;
-  if (confidence < 0.7) return 0.45;
+  if (confidence < 0.7) return 0.65;
   return 1;
 }
 
@@ -120,7 +201,7 @@ function JointSphere({ position, color, confidence }: {
 
   return (
     <mesh position={position}>
-      <sphereGeometry args={[0.025, 16, 16]} />
+      <sphereGeometry args={[0.033, 16, 16]} />
       <meshStandardMaterial
         color={color}
         transparent={opacity < 1}
@@ -151,7 +232,7 @@ function BoneSegment({ start, end, color, opacity }: {
 
   return (
     <mesh position={position} quaternion={quaternion}>
-      <cylinderGeometry args={[0.008, 0.008, length, 8]} />
+      <cylinderGeometry args={[0.011, 0.011, length, 8]} />
       <meshStandardMaterial
         color={color}
         transparent={opacity < 1}
@@ -162,9 +243,10 @@ function BoneSegment({ start, end, color, opacity }: {
 }
 
 /** The 3D skeleton scene contents with frame interpolation for smooth motion. */
-function SkeletonScene({ keypoints, modelConfidence }: {
+function SkeletonScene({ keypoints, modelConfidence, jointKinematics }: {
   keypoints: SkeletonKeypoint[];
   modelConfidence: number;
+  jointKinematics?: JointKinematicsFrame | null;
 }) {
   // Keep target keypoints in a ref (updated from props without re-render)
   const targetRef = useRef<SkeletonKeypoint[]>(keypoints);
@@ -208,8 +290,9 @@ function SkeletonScene({ keypoints, modelConfidence }: {
 
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 10, 5]} intensity={0.8} />
+      <ambientLight intensity={0.85} />
+      <directionalLight position={[5, 10, 5]} intensity={1.2} />
+      <directionalLight position={[-3, 6, -4]} intensity={0.4} />
 
       {/* Joint spheres */}
       {kps.map((kp, i) => (
@@ -234,6 +317,31 @@ function SkeletonScene({ keypoints, modelConfidence }: {
             color={getBoneColor(a, b)}
             opacity={opacity}
           />
+        );
+      })}
+
+      {/* Joint load overlays — pulsing halos and force labels at key joints */}
+      {jointKinematics && JOINT_KEYPOINT_MAP.map(({ jointKey, keypointIndex, label, maxForceN }) => {
+        const joint = jointKinematics.joints[jointKey];
+        const kp = kps[keypointIndex];
+        if (!kp || kp.confidence < 0.3) return null;
+        const pos: [number, number, number] = [kp.x, kp.y, kp.z];
+        return (
+          <group key={jointKey}>
+            <JointLoadHalo
+              position={pos}
+              forceN={joint.forceProxyN}
+              riskLevel={joint.riskLevel}
+              maxForceN={maxForceN}
+            />
+            <JointLoadLabel
+              position={pos}
+              label={label}
+              forceN={joint.forceProxyN}
+              angleProxyDeg={joint.angleProxyDeg}
+              riskLevel={joint.riskLevel}
+            />
+          </group>
         );
       })}
 
@@ -277,7 +385,7 @@ function SkeletonScene({ keypoints, modelConfidence }: {
  * This visualization is SYNTHETIC and INFERRED from Wi-Fi CSI features.
  * It is not a camera capture.
  */
-export function SkeletonViewer({ keypoints, modelConfidence, className }: SkeletonViewerProps) {
+export function SkeletonViewer({ keypoints, modelConfidence, jointKinematics, className }: SkeletonViewerProps) {
   return (
     <div
       className={className}
@@ -290,7 +398,11 @@ export function SkeletonViewer({ keypoints, modelConfidence, className }: Skelet
         gl={{ antialias: true }}
         style={{ background: '#0f172a' }}
       >
-        <SkeletonScene keypoints={keypoints} modelConfidence={modelConfidence} />
+        <SkeletonScene
+          keypoints={keypoints}
+          modelConfidence={modelConfidence}
+          jointKinematics={jointKinematics}
+        />
       </Canvas>
     </div>
   );

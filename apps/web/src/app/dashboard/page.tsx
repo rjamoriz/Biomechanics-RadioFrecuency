@@ -6,6 +6,7 @@ import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { SkeletonViewerCard } from '@/components/skeleton-viewer-card';
 import { DemoControlPanel } from '@/components/demo-control-panel';
 import { ForceAnalysisPanel } from '@/components/force-analysis-panel';
+import { JointKinematicsPanel } from '@/components/joint-kinematics-panel';
 import { RfSignalPanel } from '@/components/rf-signal-panel';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
 import { Activity, Heart, Radio, Timer, Users, Wind, Play, Square } from 'lucide-react';
@@ -19,6 +20,7 @@ export default function DashboardPage() {
     vitalSigns,
     demoState,
     signalDiagnostics,
+    jointKinematics,
     setTreadmill,
     sendDemoControl,
   } = useGatewaySocket();
@@ -219,9 +221,15 @@ export default function DashboardPage() {
                   | 'externally-validated') ?? 'experimental'
               }
               experimental={inferredFrame.experimental}
+              jointKinematics={jointKinematics}
             />
           </div>
         </div>
+      )}
+
+      {/* Joint kinematics — proxy estimates for knee, hip, ankle, lower back */}
+      {jointKinematics && (
+        <JointKinematicsPanel frame={jointKinematics} />
       )}
 
       {/* Estimated Running Forces (experimental proxy) */}

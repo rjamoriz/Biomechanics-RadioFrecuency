@@ -8,6 +8,7 @@ import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { ValidationBadge } from '@/components/ui/validation-badge';
 import { Activity, Loader2 } from 'lucide-react';
 import type { SkeletonKeypoint } from './skeleton-viewer';
+import type { JointKinematicsFrame } from '@/hooks/use-gateway-socket';
 
 /* ──────────────────────────────────────────────
  * Skeleton Viewer Card — wraps the 3D viewer
@@ -38,6 +39,7 @@ export interface SkeletonViewerCardProps {
   validationStatus: ValidationStatus;
   experimental: boolean;
   loading?: boolean;
+  jointKinematics?: JointKinematicsFrame | null;
   className?: string;
 }
 
@@ -48,6 +50,7 @@ export function SkeletonViewerCard({
   validationStatus,
   experimental,
   loading = false,
+  jointKinematics,
   className,
 }: SkeletonViewerCardProps) {
   const hasData = keypoints && keypoints.length > 0;
@@ -96,6 +99,7 @@ export function SkeletonViewerCard({
         <SkeletonViewer
           keypoints={keypoints}
           modelConfidence={modelConfidence}
+          jointKinematics={jointKinematics}
           className="h-[400px] overflow-hidden rounded-lg"
         />
       )}
