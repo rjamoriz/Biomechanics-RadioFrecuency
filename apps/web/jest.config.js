@@ -9,6 +9,8 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
+  watchPathIgnorePatterns: ['<rootDir>/.next/'],
   testMatch: ['<rootDir>/src/**/*.test.{ts,tsx}'],
 };
 

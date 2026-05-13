@@ -1,4 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api';
+const SESSION_TOKEN_KEY = 'biomech-token';
 
 type RequestOptions = {
   method?: string;
@@ -6,17 +7,26 @@ type RequestOptions = {
   token?: string;
 };
 
+function getStoredToken(): string | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  return sessionStorage.getItem(SESSION_TOKEN_KEY) ?? undefined;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = 'GET', body, token } = options;
+  const resolvedToken = token ?? getStoredToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (resolvedToken) {
+    headers['Authorization'] = `Bearer ${resolvedToken}`;
   }
 
   const res = await fetch(`${API_URL}${path}`, {

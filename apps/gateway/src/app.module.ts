@@ -14,11 +14,13 @@ import { HealthController } from './health/health.controller';
 import { DemoModule } from './demo/demo.module';
 import { AutonomousModule } from './autonomous/autonomous.module';
 import { RecordingModule } from './recording/recording.module';
+import { RedisModule } from './redis/redis.module';
 
 const isDemoMode = process.env.DEMO_MODE === 'true';
 
 @Module({
   imports: [
+    RedisModule,
     SerialModule,
     IngestionModule,
     MetricsModule,

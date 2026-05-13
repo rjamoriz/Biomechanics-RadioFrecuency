@@ -1,0 +1,9 @@
+{
+  "raw_rows": 8000,
+  "rows_clean": 8000,
+  "classical_rows": 8000,
+  "qml_rows": 512,
+  "target": "future_pain_or_modification_14d",
+  "synthetic": true,
+  "medical_diagnosis": false
+}

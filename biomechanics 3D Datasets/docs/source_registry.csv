@@ -1,0 +1,6 @@
+source_id,title,url,usage
+RUN_BIOMECH_SPEED,A public dataset of running biomechanics and effects of running speed,https://pmc.ncbi.nlm.nih.gov/articles/PMC5426356/,schema reference only; synthetic rows no public rows copied
+FERBER_1798,A Biomechanical Dataset of 1798 Healthy and Injured Subjects During Treadmill Walking and Running,https://www.nature.com/articles/s41597-024-04011-7,schema reference only; synthetic rows no public rows copied
+MEI_STEPWIDTH_SPEED,Walking and running biomechanics with different step widths and speeds,https://auckland.figshare.com/projects/Dataset_of_walking_and_running_biomechanics_with_different_step_widths_across_different_speeds/220732,schema reference only; synthetic rows no public rows copied
+RRI_ML,Multidisciplinary prediction of running-related injuries using machine learning,https://www.nature.com/articles/s41746-026-02413-y,injury-risk framing reference only
+PROJECT_DOC,Biomechanical Radiofrequency Athlete Monitoring Platform,local_project_document,project schema and platform requirements

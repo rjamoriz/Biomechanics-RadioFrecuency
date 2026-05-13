@@ -1,0 +1,1 @@
+print('Load data/processed/ml_feature_matrix.csv for classical ML and data/processed/qml_feature_matrix_small.csv for QML experiments. Benchmark QML against classical baselines and do not claim quantum advantage without evidence.')

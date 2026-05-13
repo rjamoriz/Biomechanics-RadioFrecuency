@@ -1,4 +1,9 @@
 import { Injectable, Logger, Optional, Inject } from '@nestjs/common';
+import { NormalizedPacket } from '../ingestion/event-bus';
+import {
+  InferenceResult,
+  OnnxInferenceService,
+} from '../inference/onnx-inference.service';
 import { InferredMotionFrame } from './pose.types';
 import { DemoPoseGenerator } from '../demo/demo-pose-generator';
 
@@ -15,26 +20,61 @@ export class PoseInferenceAdapter {
   constructor(
     @Optional() @Inject(DemoPoseGenerator)
     private readonly demoPoseGenerator?: DemoPoseGenerator,
+    @Optional() @Inject(OnnxInferenceService)
+    private readonly onnxInferenceService?: OnnxInferenceService,
   ) {}
 
-  async infer(featureWindow: number[][]): Promise<InferredMotionFrame | null> {
-    const demoMode = process.env.DEMO_MODE === 'true';
-
-    if (!demoMode) {
-      // TODO: call Python inference service or load ONNX model
-      return null;
+  async infer(packetWindow: NormalizedPacket[]): Promise<InferredMotionFrame | null> {
+    if (this.onnxInferenceService?.isReady()) {
+      const inference = await this.onnxInferenceService.predict(
+        this.toFeatureVector(packetWindow),
+      );
+      if (inference) {
+        return this.toMotionFrame(inference, packetWindow);
+      }
     }
 
-    // Prefer rich animated demo if DemoPoseGenerator is available
     if (this.demoPoseGenerator) {
       return this.demoPoseGenerator.generate();
     }
 
-    return this.generateDemoFrame(featureWindow);
+    if (process.env.DEMO_MODE === 'true') {
+      return this.generateDemoFrame(packetWindow);
+    }
+
+    return null;
+  }
+
+  private toFeatureVector(packetWindow: NormalizedPacket[]): number[] {
+    return packetWindow.reduce<number[]>((features, packet) => {
+      features.push(...packet.amplitude);
+      return features;
+    }, []);
+  }
+
+  private toMotionFrame(
+    inference: InferenceResult,
+    packetWindow: NormalizedPacket[],
+  ): InferredMotionFrame {
+    const confidence = this.clamp(inference.modelConfidence);
+
+    return {
+      timestamp:
+        packetWindow[packetWindow.length - 1]?.timestamp ?? Date.now(),
+      frameIndex: this.frameIndex++,
+      keypoints2D: inference.keypoints,
+      joints3D: null,
+      confidence,
+      confidenceLevel: this.confidenceLevel(confidence),
+      modelVersion: inference.modelVersion,
+      experimental: true,
+      signalQualityScore: this.windowSignalQuality(packetWindow, confidence),
+      validationStatus: 'unvalidated',
+    };
   }
 
   private generateDemoFrame(
-    featureWindow: number[][],
+    _packetWindow: NormalizedPacket[],
   ): InferredMotionFrame {
     const frame: InferredMotionFrame = {
       timestamp: Date.now(),
@@ -60,5 +100,36 @@ export class PoseInferenceAdapter {
     };
 
     return frame;
+  }
+
+  private confidenceLevel(
+    confidence: number,
+  ): InferredMotionFrame['confidenceLevel'] {
+    if (confidence >= 0.7) {
+      return 'high';
+    }
+    if (confidence >= 0.4) {
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  private windowSignalQuality(
+    packetWindow: NormalizedPacket[],
+    fallback: number,
+  ): number {
+    if (packetWindow.length === 0) {
+      return fallback;
+    }
+
+    const averageRssi =
+      packetWindow.reduce((sum, packet) => sum + packet.rssi, 0) /
+      packetWindow.length;
+
+    return this.clamp((averageRssi + 100) / 50);
+  }
+
+  private clamp(value: number, min = 0, max = 1): number {
+    return Math.max(min, Math.min(max, value));
   }
 }

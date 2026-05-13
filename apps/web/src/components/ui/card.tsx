@@ -37,3 +37,13 @@ export function CardTitle({
     </h3>
   );
 }
+
+export function CardContent({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={cn('mt-2', className)}>{children}</div>;
+}

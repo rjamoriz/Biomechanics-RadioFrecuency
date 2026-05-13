@@ -31,6 +31,8 @@ analytics platform that can:
 - optionally infer 2D/3D pose or body-model representations from Wi-Fi-derived features,
 - render synthetic front, rear, and lateral motion views from inferred models,
 - validate estimated metrics against external references.
+- Use the raw data from the ESP32 CSI sensing to compute proxy metrics like cadence, step interval, symmetry proxy, contact-time proxy, flight-time proxy, form stability score, fatigue drift score, signal quality score, and confidence estimates. Do not present any inferred motion outputs as true camera views or optical motion capture. Always include confidence and validation status with every estimated metric and inferred output. We have the file on the repository that outlines the scientific rules, product context, architecture expectations, coding behavior, and other guidelines for this project. Follow those rules closely in every code change you make.
+We have as well synthetic_rf_biomech_runner_stride_dataset.csv in the repository, which contains synthetic data that can be used for testing and validation. Use it to verify that the code correctly processes CSI data and produces reasonable proxy metrics. When implementing new features or fixing bugs, always check if the changes align with the scientific rules and product context outlined in the docs/architecture.md and docs/sensing_limitations.md files. If you need to make assumptions due to hardware limitations, document those assumptions clearly in the code comments and relevant documentation.
 
 ## Non-negotiable scientific rules
 

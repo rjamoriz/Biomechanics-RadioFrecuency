@@ -1,15 +1,16 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { EventBus } from '../ingestion/event-bus';
+import { Subject } from 'rxjs';
+import { EventBus, NormalizedPacket } from '../ingestion/event-bus';
+import { RingBuffer } from '../ingestion/ring-buffer';
 import { PoseInferenceAdapter } from './pose-inference.adapter';
 import { InferredMotionFrame } from './pose.types';
-import { RingBuffer } from '../ingestion/ring-buffer';
-import { NormalizedPacket } from '../ingestion/event-bus';
-import { Subject } from 'rxjs';
+
+const POSE_WINDOW_SIZE = Number(process.env.POSE_WINDOW_SIZE ?? 64);
 
 @Injectable()
 export class PoseService implements OnModuleInit {
   private readonly logger = new Logger(PoseService.name);
-  private readonly windowBuffer = new RingBuffer<NormalizedPacket>(50);
+  private readonly windowBuffer = new RingBuffer<NormalizedPacket>(POSE_WINDOW_SIZE);
   private latestFrame: InferredMotionFrame | null = null;
   private readonly frames$ = new Subject<InferredMotionFrame>();
 
@@ -27,12 +28,8 @@ export class PoseService implements OnModuleInit {
       this.windowBuffer.push(packet);
       counter++;
 
-      // Run inference every 5 packets (~20 Hz at 100 Hz) for smooth animation
       if (counter % 5 === 0) {
-        const window = this.windowBuffer
-          .toArray()
-          .map((p) => p.amplitude);
-
+        const window = this.windowBuffer.toArray();
         const frame = await this.inferenceAdapter.infer(window);
         if (frame) {
           this.latestFrame = frame;

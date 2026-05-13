@@ -31,3 +31,12 @@ export {
   referenceStatusEnum,
   validationStatusEnum,
 } from './validation';
+
+export type {
+  TrainingLoad,
+  TrainingLoadRequest,
+  PainReport,
+  PainReportRequest,
+  AthleteBaseline,
+  InjuryRiskSummary,
+} from './longitudinal';

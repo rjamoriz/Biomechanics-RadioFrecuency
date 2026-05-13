@@ -27,6 +27,11 @@ export default function AthleteDetailPage() {
           {athlete.firstName} {athlete.lastName}
         </h1>
         <div className="flex items-center gap-2">
+          <Link href={`/athletes/${params.id}/longitudinal`}>
+            <Button variant="secondary" size="sm">
+              Training Timeline
+            </Button>
+          </Link>
           <Link href={`/athletes/${params.id}/edit`}>
             <Button variant="secondary" size="sm">
               <Pencil className="h-3.5 w-3.5" />
