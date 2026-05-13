@@ -6,8 +6,9 @@ import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { SkeletonViewerCard } from '@/components/skeleton-viewer-card';
 import { DemoControlPanel } from '@/components/demo-control-panel';
 import { ForceAnalysisPanel } from '@/components/force-analysis-panel';
+import { RfSignalPanel } from '@/components/rf-signal-panel';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
-import { Activity, Heart, Radio, Timer, Users, Wind } from 'lucide-react';
+import { Activity, Heart, Radio, Timer, Users, Wind, Play, Square } from 'lucide-react';
 
 export default function DashboardPage() {
   const {
@@ -17,9 +18,15 @@ export default function DashboardPage() {
     inferredFrame,
     vitalSigns,
     demoState,
+    signalDiagnostics,
     setTreadmill,
     sendDemoControl,
   } = useGatewaySocket();
+
+  const isRunning = demoState?.isRunning ?? false;
+
+  const handleStart = () => setTreadmill(8, 0);
+  const handleStop = () => setTreadmill(0, 0);
 
   return (
     <div className="space-y-6">
@@ -147,26 +154,74 @@ export default function DashboardPage() {
 
       {/* Inferred 3D Skeleton (when inference data is available) */}
       {inferredFrame && (
-        <SkeletonViewerCard
-          keypoints={
-            inferredFrame.keypoints2D?.map((kp) => ({
-              x: (kp.x - 0.5) * 2,
-              y: (1 - kp.y) * 1.8,
-              z: (kp.z ?? 0) * 2,
-              confidence: kp.confidence,
-            })) ?? null
-          }
-          modelConfidence={inferredFrame.confidence}
-          signalQualityScore={inferredFrame.signalQualityScore}
-          validationStatus={
-            (inferredFrame.validationStatus as
-              | 'unvalidated'
-              | 'experimental'
-              | 'station-validated'
-              | 'externally-validated') ?? 'experimental'
-          }
-          experimental={inferredFrame.experimental}
-        />
+        <div className="space-y-4">
+          {/* Simulation Start / Stop controls */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Radio className="h-4 w-4 text-emerald-400" />
+              <span className="text-sm font-medium text-slate-200">
+                Wi-Fi CSI Simulation
+              </span>
+              <Badge variant={isRunning ? 'success' : 'default'}>
+                {isRunning ? 'Running' : 'Stopped'}
+              </Badge>
+              {isRunning && demoState && (
+                <span className="text-xs text-slate-400">
+                  {demoState.treadmillSpeedKmh.toFixed(1)} km/h
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {!isRunning ? (
+                <button
+                  onClick={handleStart}
+                  className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Start
+                </button>
+              ) : (
+                <button
+                  onClick={handleStop}
+                  className="flex items-center gap-1.5 rounded-md bg-slate-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-slate-500"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  Stop
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* RF signal + Skeleton side by side on large screens */}
+          <div className="grid gap-4 xl:grid-cols-2">
+            <RfSignalPanel
+              signalQualityScore={metrics?.signalQualityScore ?? inferredFrame.signalQualityScore}
+              demoState={demoState}
+              signalDiagnostics={signalDiagnostics}
+              isRunning={isRunning}
+            />
+            <SkeletonViewerCard
+              keypoints={
+                inferredFrame.keypoints2D?.map((kp) => ({
+                  x: (kp.x - 0.5) * 2,
+                  y: (1 - kp.y) * 1.8,
+                  z: (kp.z ?? 0) * 2,
+                  confidence: kp.confidence,
+                })) ?? null
+              }
+              modelConfidence={inferredFrame.confidence}
+              signalQualityScore={inferredFrame.signalQualityScore}
+              validationStatus={
+                (inferredFrame.validationStatus as
+                  | 'unvalidated'
+                  | 'experimental'
+                  | 'station-validated'
+                  | 'externally-validated') ?? 'experimental'
+              }
+              experimental={inferredFrame.experimental}
+            />
+          </div>
+        </div>
       )}
 
       {/* Estimated Running Forces (experimental proxy) */}

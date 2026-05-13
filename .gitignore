@@ -76,3 +76,6 @@ Thumbs.db
 .fakeapps/web/package-lock.json
 
 .fake
+# Large simulation raw data files (>100MB, excluded from git)
+biomechanics 3D Datasets/scripts/**/data/raw/synthetic_wifi_csi_raw_like.csv
+biomechanics 3D Datasets/scripts/**/*.zip

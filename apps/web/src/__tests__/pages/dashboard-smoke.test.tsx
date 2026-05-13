@@ -23,6 +23,7 @@ jest.mock('@/hooks/use-gateway-socket', () => ({
     inferredFrame: null,
     vitalSigns: null,
     demoState: null,
+    signalDiagnostics: null,
     setTreadmill: jest.fn(),
     sendDemoControl: jest.fn(),
   }),

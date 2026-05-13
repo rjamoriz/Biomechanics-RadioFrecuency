@@ -25,6 +25,12 @@ export class PoseInferenceAdapter {
   ) {}
 
   async infer(packetWindow: NormalizedPacket[]): Promise<InferredMotionFrame | null> {
+    // In DEMO_MODE the ONNX model is a bootstrap placeholder with near-zero output.
+    // Always prefer the animated DemoPoseGenerator so the skeleton visualization works.
+    if (process.env.DEMO_MODE === 'true' && this.demoPoseGenerator) {
+      return this.demoPoseGenerator.generate();
+    }
+
     if (this.onnxInferenceService?.isReady()) {
       const inference = await this.onnxInferenceService.predict(
         this.toFeatureVector(packetWindow),

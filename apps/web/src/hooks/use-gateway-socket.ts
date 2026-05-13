@@ -111,6 +111,24 @@ export interface VitalSignsData {
   disclaimer: string;
 }
 
+export interface SignalDiagnosticsData {
+  timestamp: number;
+  throughputHz: number;
+  gateAcceptanceRate: number;
+  fieldModel?: {
+    presenceDetected: boolean;
+    motionEnergy: number;
+    driftScore: number;
+    state: string;
+  };
+  coherence?: {
+    coherence: number;
+    normalizedEntropy: number;
+    isDecoherenceEvent: boolean;
+  };
+  disclaimer: string;
+}
+
 export interface SimulationState {
   elapsedSeconds: number;
   currentGaitFreqHz: number;
@@ -150,6 +168,7 @@ export function useGatewaySocket() {
   const [vitalSigns, setVitalSigns] = useState<VitalSignsData | null>(null);
   const [demoState, setDemoState] = useState<SimulationState | null>(null);
   const [jointKinematics, setJointKinematics] = useState<JointKinematicsFrame | null>(null);
+  const [signalDiagnostics, setSignalDiagnostics] = useState<SignalDiagnosticsData | null>(null);
 
   useEffect(() => {
     const socket = io(`${GATEWAY_URL}/live`, {
@@ -186,6 +205,10 @@ export function useGatewaySocket() {
       setJointKinematics(data);
     });
 
+    socket.on('signal-diagnostics', (data: SignalDiagnosticsData) => {
+      setSignalDiagnostics(data);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -213,6 +236,7 @@ export function useGatewaySocket() {
     vitalSigns,
     demoState,
     jointKinematics,
+    signalDiagnostics,
     setTreadmill,
     sendDemoControl,
   };
