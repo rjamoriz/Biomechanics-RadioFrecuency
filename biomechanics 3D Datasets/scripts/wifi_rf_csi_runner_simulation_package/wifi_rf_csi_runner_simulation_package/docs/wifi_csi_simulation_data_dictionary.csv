@@ -1,0 +1,25 @@
+file,column,description
+synthetic_wifi_csi_raw_like.csv,athlete_id,Synthetic anonymized athlete identifier.
+synthetic_wifi_csi_raw_like.csv,session_id,Synthetic Wi-Fi CSI session identifier.
+synthetic_wifi_csi_raw_like.csv,room_id,Simulated laboratory room identifier.
+synthetic_wifi_csi_raw_like.csv,sensor_geometry,Simulated Wi-Fi transmitter/receiver placement geometry.
+synthetic_wifi_csi_raw_like.csv,speed_mps,Treadmill running speed in meters per second.
+synthetic_wifi_csi_raw_like.csv,time_s,"Timestamp in seconds, downsampled to compact CSV rate."
+synthetic_wifi_csi_raw_like.csv,link_id,Synthetic TX/RX link identifier.
+synthetic_wifi_csi_raw_like.csv,subcarrier_index,OFDM-like Wi-Fi subcarrier index.
+synthetic_wifi_csi_raw_like.csv,csi_amplitude,Synthetic CSI amplitude for a subcarrier/link/time sample.
+synthetic_wifi_csi_raw_like.csv,csi_phase_rad,Synthetic wrapped CSI phase in radians.
+synthetic_wifi_csi_raw_like.csv,gait_phase_label,"Synthetic gait phase: left_contact, right_contact, or flight."
+synthetic_wifi_csi_raw_like.csv,left_contact_label,Binary left-foot contact label.
+synthetic_wifi_csi_raw_like.csv,right_contact_label,Binary right-foot contact label.
+synthetic_wifi_csi_raw_like.csv,rf_snr_db,Synthetic RF signal-to-noise ratio.
+synthetic_wifi_csi_raw_like.csv,multipath_score,Synthetic multipath/noise score from 0 to 1.
+synthetic_wifi_csi_raw_like.csv,rf_signal_quality,Synthetic confidence score for RF measurement quality.
+synthetic_wifi_rf_window_features.csv,dominant_doppler_proxy_hz,Dominant motion frequency proxy extracted from simulated body motion.
+synthetic_wifi_rf_window_features.csv,harmonic_energy_ratio,Spectral energy around gait harmonics divided by total motion energy.
+synthetic_wifi_rf_window_features.csv,vertical_force_peak_bw_proxy,Synthetic peak vertical force proxy in body weights.
+synthetic_wifi_rf_window_features.csv,lateral_force_peak_bw_proxy,Synthetic peak lateral force proxy in body weights.
+synthetic_wifi_rf_window_features.csv,calf_load_contact_bw,Synthetic calf-load proxy during contact phase in body-weight units.
+synthetic_wifi_rf_window_features.csv,calf_load_uplift_bw,Synthetic calf-load proxy during uplift/propulsion phase in body-weight units.
+synthetic_wifi_rf_window_features.csv,muscle_load_index,Synthetic global muscle-load index.
+synthetic_wifi_rf_window_features.csv,future_pain_or_modification_14d,Synthetic risk label for pain or training modification within 14 days.

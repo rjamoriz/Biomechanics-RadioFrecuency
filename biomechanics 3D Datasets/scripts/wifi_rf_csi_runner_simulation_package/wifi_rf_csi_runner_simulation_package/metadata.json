@@ -1,0 +1,46 @@
+{
+  "raw_like_csi_rows": 921600,
+  "window_feature_rows": 1440,
+  "event_label_rows": 80,
+  "qml_rows": 512,
+  "etl_from_raw_rows": 1440,
+  "athletes": 10,
+  "sessions_per_athlete": 2,
+  "speeds_mps": [
+    2.7,
+    3.0,
+    3.3,
+    3.7
+  ],
+  "duration_s_per_speed": 18,
+  "internal_sampling_rate_hz": 100,
+  "csv_downsample": 10,
+  "csv_effective_rate_hz": 10.0,
+  "subcarriers": [
+    -28,
+    -24,
+    -20,
+    -16,
+    -12,
+    -8,
+    -4,
+    -2,
+    2,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28
+  ],
+  "links": [
+    "tx1_rx1",
+    "tx1_rx2",
+    "tx2_rx1",
+    "tx2_rx2"
+  ],
+  "synthetic": true,
+  "hardware_captured": false,
+  "medical_diagnosis": false
+}

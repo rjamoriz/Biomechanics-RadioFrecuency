@@ -50,6 +50,51 @@ export interface InferredMotionFrame {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Joint Kinematics — proxy per-joint estimates during running
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type RunningGaitPhase =
+  | 'loading_response'
+  | 'mid_stance'
+  | 'terminal_stance'
+  | 'toe_off'
+  | 'initial_swing'
+  | 'mid_swing'
+  | 'terminal_swing';
+
+export interface JointProxyData {
+  angleProxyDeg: number;
+  forceProxyN: number;
+  displacementFromBaselineDeg: number;
+  riskLevel: 'normal' | 'elevated' | 'high';
+  confidence: number;
+}
+
+export interface JointKinematicsFrame {
+  timestamp: number;
+  leftLegPhase: RunningGaitPhase;
+  rightLegPhase: RunningGaitPhase;
+  gaitCyclePositionLeft: number;
+  gaitCyclePositionRight: number;
+  joints: {
+    leftKnee: JointProxyData;
+    rightKnee: JointProxyData;
+    leftHip: JointProxyData;
+    rightHip: JointProxyData;
+    leftAnkle: JointProxyData;
+    rightAnkle: JointProxyData;
+    lowerBack: JointProxyData;
+  };
+  bilateralSymmetryScore: number;
+  highestRiskJoint: string;
+  speedKmh: number;
+  inclinePercent: number;
+  experimental: true;
+  validationStatus: 'experimental';
+  disclaimer: string;
+}
+
 export interface VitalEstimate {
   estimatedBpm: number;
   confidence: number;
@@ -104,6 +149,7 @@ export function useGatewaySocket() {
   const [inferredFrame, setInferredFrame] = useState<InferredMotionFrame | null>(null);
   const [vitalSigns, setVitalSigns] = useState<VitalSignsData | null>(null);
   const [demoState, setDemoState] = useState<SimulationState | null>(null);
+  const [jointKinematics, setJointKinematics] = useState<JointKinematicsFrame | null>(null);
 
   useEffect(() => {
     const socket = io(`${GATEWAY_URL}/live`, {
@@ -136,6 +182,10 @@ export function useGatewaySocket() {
       setDemoState(data);
     });
 
+    socket.on('joint-kinematics', (data: JointKinematicsFrame) => {
+      setJointKinematics(data);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -162,6 +212,7 @@ export function useGatewaySocket() {
     inferredFrame,
     vitalSigns,
     demoState,
+    jointKinematics,
     setTreadmill,
     sendDemoControl,
   };

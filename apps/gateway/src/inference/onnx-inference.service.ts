@@ -117,10 +117,31 @@ export class OnnxInferenceService implements OnModuleInit {
       this.modelVersion =
         this.session.handler?.metadata?.get?.('version') ?? 'onnx-v0.1.0';
 
+      // Load expected tensor shape from sidecar meta.json (if present)
+      const metaPath = this.modelPath.replace(/\.onnx$/, '.meta.json');
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          if (Array.isArray(meta.input_shape) && meta.input_shape.length >= 2) {
+            this.inputShape = meta.input_shape as number[];
+            this.logger.log(`Input shape from meta.json: [${this.inputShape.join(', ')}]`);
+          }
+          if (Array.isArray(meta.output_shape)) {
+            this.outputShape = meta.output_shape as number[];
+          }
+          if (typeof meta.model_version === 'string') {
+            this.modelVersion = meta.model_version;
+          }
+        } catch (metaErr) {
+          this.logger.warn(`Could not parse meta.json at ${metaPath}: ${metaErr}`);
+        }
+      }
+
       this.ready = true;
       this.logger.log(
         `ONNX model loaded from ${this.modelPath} — ` +
-          `inputs: [${inputMeta.join(', ')}], outputs: [${outputMeta.join(', ')}]`,
+          `inputs: [${inputMeta.join(', ')}], outputs: [${outputMeta.join(', ')}], ` +
+          `inputShape: [${this.inputShape.join(', ')}]`,
       );
     } catch (err) {
       this.logger.error(`Failed to load ONNX model from ${this.modelPath}: ${err}`);
@@ -150,11 +171,21 @@ export class OnnxInferenceService implements OnModuleInit {
     const start = performance.now();
 
     try {
-      const inputTensor = new this.ort.Tensor(
-        'float32',
-        Float32Array.from(features),
-        [1, features.length],
+      // Determine tensor dims: use meta.json shape when available, else treat as flat vector
+      const modelDims: number[] =
+        this.inputShape.length >= 2 ? this.inputShape : [1, features.length];
+
+      // Total elements the model expects (excluding batch dimension if it's dynamic)
+      const totalElements = modelDims.reduce((a, b) => a * b, 1);
+
+      // Pad or truncate feature vector to fit the model's declared input size
+      const paddedFeatures = new Float32Array(totalElements);
+      const srcData = Float32Array.from(features);
+      paddedFeatures.set(
+        srcData.length <= totalElements ? srcData : srcData.subarray(0, totalElements),
       );
+
+      const inputTensor = new this.ort.Tensor('float32', paddedFeatures, modelDims);
 
       const inputName = this.session.inputNames[0];
       const feeds: Record<string, any> = { [inputName]: inputTensor };

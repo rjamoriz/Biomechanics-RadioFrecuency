@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ConfidenceIndicator } from '@/components/ui/confidence-indicator';
 import { SessionControls } from '@/components/session-controls';
 import { SessionEventLogger } from '@/components/session-event-logger';
+import { JointKinematicsPanel } from '@/components/joint-kinematics-panel';
 import { useGatewaySocket } from '@/hooks/use-gateway-socket';
 import { useSession } from '@/hooks/use-sessions';
 import { apiFetch } from '@/lib/api';
@@ -31,7 +32,7 @@ interface DataPoint {
 
 export default function LiveSessionPage() {
   const params = useParams<{ id: string }>();
-  const { connected, demoMode, metrics } = useGatewaySocket();
+  const { connected, demoMode, metrics, jointKinematics } = useGatewaySocket();
   const { data: session } = useSession(params.id);
   const [history, setHistory] = useState<DataPoint[]>([]);
   const [notes, setNotes] = useState('');
@@ -167,6 +168,11 @@ export default function LiveSessionPage() {
               </div>
             </div>
           </Card>
+
+          {/* Joint Kinematics Panel */}
+          {jointKinematics && (
+            <JointKinematicsPanel frame={jointKinematics} />
+          )}
 
           {/* Manual event logger */}
           <Card>

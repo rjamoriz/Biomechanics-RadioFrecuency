@@ -1,5 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InferredMotionFrame, Keypoint2D, EstimatedRunningForces } from '../pose/pose.types';
+import {
+  InferredMotionFrame,
+  Keypoint2D,
+  EstimatedRunningForces,
+  JointKinematicsFrame,
+  JointProxyData,
+  RunningGaitPhase,
+} from '../pose/pose.types';
 import { DemoSimulatorService } from './demo-simulator.service';
 
 /**
@@ -428,4 +435,304 @@ export class DemoPoseGenerator {
       keypoints.reduce((sum, kp) => sum + kp.confidence, 0) / keypoints.length;
     return avgKpConf * 0.6 + signalQuality * 0.4;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Joint Kinematics — proxy per-joint forces, angles, and displacements
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Compute per-joint kinematics proxy estimates for the current gait phase.
+   *
+   * Biomechanical model based on:
+   * - Knee flexion curve: Novacheck 1998, Hamner et al. 2010
+   * - Hip angle curve: Perry & Burnfield 2010
+   * - Ankle dorsi/plantarflexion: Keller et al. 1996
+   * - Joint forces (proxy): scaled from body weight using published ratios
+   *
+   * All values are PROXY ESTIMATES with significant uncertainty (±20-35%).
+   * Validation status: experimental.
+   */
+  computeJointKinematics(
+    speedKmh: number,
+    weightKg: number,
+    inclinePercent: number,
+    fatigue: number,
+    signalQuality: number,
+  ): JointKinematicsFrame {
+    const phase = this.simulator.getGaitPhase();
+    const BW_N = weightKg * 9.81;
+    const speedFactor = Math.max(0, Math.min(1, (speedKmh - 6) / 14));
+    // Incline increases hip flexion and loading rates
+    const inclineFactor = inclinePercent / 100;
+
+    // Normalized gait cycle position 0..1 per leg
+    const posLeft = ((phase % (2 * Math.PI)) / (2 * Math.PI));
+    const posRight = (((phase + Math.PI) % (2 * Math.PI)) / (2 * Math.PI));
+
+    const leftPhase = this.classifyGaitPhase(posLeft);
+    const rightPhase = this.classifyGaitPhase(posRight);
+
+    const leftKnee = this.computeKneeJoint(posLeft, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const rightKnee = this.computeKneeJoint(posRight, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const leftHip = this.computeHipJoint(posLeft, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const rightHip = this.computeHipJoint(posRight, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const leftAnkle = this.computeAnkleJoint(posLeft, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const rightAnkle = this.computeAnkleJoint(posRight, speedFactor, inclineFactor, fatigue, BW_N, signalQuality);
+    const lowerBack = this.computeLowerBackJoint(speedFactor, inclineFactor, fatigue, signalQuality);
+
+    // Bilateral symmetry: compare peak angles and forces L vs R
+    const symmetry = this.computeBilateralSymmetry(leftKnee, rightKnee, leftHip, rightHip);
+
+    // Find highest risk joint
+    const jointEntries: Array<[string, JointProxyData]> = [
+      ['leftKnee', leftKnee], ['rightKnee', rightKnee],
+      ['leftHip', leftHip], ['rightHip', rightHip],
+      ['leftAnkle', leftAnkle], ['rightAnkle', rightAnkle],
+      ['lowerBack', lowerBack],
+    ];
+    const riskOrder = { high: 2, elevated: 1, normal: 0 };
+    const highestRiskJoint = jointEntries.reduce((best, [name, j]) =>
+      riskOrder[j.riskLevel] > riskOrder[best[1].riskLevel] ? [name, j] : best,
+      jointEntries[0],
+    )[0];
+
+    return {
+      timestamp: Date.now(),
+      leftLegPhase: leftPhase,
+      rightLegPhase: rightPhase,
+      gaitCyclePositionLeft: parseFloat(posLeft.toFixed(3)),
+      gaitCyclePositionRight: parseFloat(posRight.toFixed(3)),
+      joints: { leftKnee, rightKnee, leftHip, rightHip, leftAnkle, rightAnkle, lowerBack },
+      bilateralSymmetryScore: parseFloat(symmetry.toFixed(3)),
+      highestRiskJoint,
+      speedKmh,
+      inclinePercent,
+      experimental: true,
+      validationStatus: 'experimental',
+      disclaimer:
+        'Joint kinematics are proxy estimates inferred from Wi-Fi CSI gait signals. ' +
+        'They are NOT optical motion capture or clinical-grade measurements.',
+    };
+  }
+
+  private classifyGaitPhase(pos: number): RunningGaitPhase {
+    if (pos < 0.12) return 'loading_response';
+    if (pos < 0.30) return 'mid_stance';
+    if (pos < 0.50) return 'terminal_stance';
+    if (pos < 0.62) return 'toe_off';
+    if (pos < 0.75) return 'initial_swing';
+    if (pos < 0.87) return 'mid_swing';
+    return 'terminal_swing';
+  }
+
+  /** Knee proxy: flexion 0–120°. Peak ~20° at mid-stance, ~90–110° mid-swing. */
+  private computeKneeJoint(
+    pos: number, speedFactor: number, inclineFactor: number,
+    fatigue: number, BW_N: number, signalQuality: number,
+  ): JointProxyData {
+    let angleDeg: number;
+    let forceRatioBW: number;
+
+    if (pos < 0.12) {
+      // Loading response: rapid knee flexion to absorb impact
+      const t = pos / 0.12;
+      angleDeg = 5 + t * (20 + speedFactor * 15);
+      forceRatioBW = 2.5 + speedFactor * 1.5 + inclineFactor * 0.5;
+    } else if (pos < 0.30) {
+      // Mid-stance: max knee flexion then extending
+      const t = (pos - 0.12) / 0.18;
+      angleDeg = (20 + speedFactor * 15) * (1 - t) + 5;
+      forceRatioBW = 2.8 + speedFactor * 1.2;
+    } else if (pos < 0.50) {
+      // Terminal stance: knee nearly extended
+      const t = (pos - 0.30) / 0.20;
+      angleDeg = 5 + t * 10;
+      forceRatioBW = 1.5 + speedFactor * 0.5;
+    } else if (pos < 0.62) {
+      // Toe-off: knee flexing for push-off
+      const t = (pos - 0.50) / 0.12;
+      angleDeg = 10 + t * 30;
+      forceRatioBW = 1.0 + speedFactor * 0.3;
+    } else if (pos < 0.75) {
+      // Initial swing: rapid knee flexion
+      const t = (pos - 0.62) / 0.13;
+      angleDeg = 40 + t * (60 + speedFactor * 20);
+      forceRatioBW = 0.1;
+    } else if (pos < 0.87) {
+      // Mid-swing: max knee flexion
+      const t = (pos - 0.75) / 0.12;
+      angleDeg = (100 + speedFactor * 20) * (1 - t) + 30;
+      forceRatioBW = 0.1;
+    } else {
+      // Terminal swing: extending for contact
+      const t = (pos - 0.87) / 0.13;
+      angleDeg = 30 * (1 - t) + 5;
+      forceRatioBW = 0.2;
+    }
+
+    // Fatigue increases knee flexion during stance (collapse) and reduces during swing
+    const fatigueAngleMod = pos < 0.62 ? fatigue * 8 : -fatigue * 5;
+    angleDeg = Math.max(0, angleDeg + fatigueAngleMod);
+    const forceN = BW_N * forceRatioBW * (1 + fatigue * 0.1) * (1 + (Math.random() - 0.5) * 0.05);
+
+    // Baseline deviation: fatigue-driven excess flexion is a risk signal
+    const displacementFromBaselineDeg = fatigueAngleMod + (Math.random() - 0.5) * 2;
+
+    const riskLevel: JointProxyData['riskLevel'] =
+      forceN > BW_N * 4.5 || Math.abs(displacementFromBaselineDeg) > 10
+        ? 'high'
+        : forceN > BW_N * 3.0 || Math.abs(displacementFromBaselineDeg) > 5
+          ? 'elevated'
+          : 'normal';
+
+    return {
+      angleProxyDeg: parseFloat(angleDeg.toFixed(1)),
+      forceProxyN: parseFloat(forceN.toFixed(1)),
+      displacementFromBaselineDeg: parseFloat(displacementFromBaselineDeg.toFixed(2)),
+      riskLevel,
+      confidence: parseFloat((signalQuality * (0.7 + 0.1 * (1 - fatigue))).toFixed(3)),
+    };
+  }
+
+  /** Hip proxy: flexion (positive) to extension (negative). Range −15° to +70°. */
+  private computeHipJoint(
+    pos: number, speedFactor: number, inclineFactor: number,
+    fatigue: number, BW_N: number, signalQuality: number,
+  ): JointProxyData {
+    let angleDeg: number;
+    let forceRatioBW: number;
+
+    if (pos < 0.12) {
+      // Loading: hip in moderate flexion
+      angleDeg = 30 + speedFactor * 15 + inclineFactor * 20;
+      forceRatioBW = 1.5 + speedFactor * 0.8;
+    } else if (pos < 0.50) {
+      // Stance: hip extends from +30° to −10°
+      const t = (pos - 0.12) / 0.38;
+      angleDeg = (30 + speedFactor * 15 + inclineFactor * 20) * (1 - t) - 10;
+      forceRatioBW = 1.8 + speedFactor * 0.6;
+    } else if (pos < 0.62) {
+      // Toe-off: maximum hip extension
+      angleDeg = -10 - speedFactor * 8;
+      forceRatioBW = 2.0 + speedFactor * 0.8;
+    } else {
+      // Swing: hip flexes forward
+      const t = (pos - 0.62) / 0.38;
+      angleDeg = (-10 - speedFactor * 8) * (1 - t) + (45 + speedFactor * 20 + inclineFactor * 15);
+      forceRatioBW = 0.3 + speedFactor * 0.2;
+    }
+
+    const fatigueAngleMod = fatigue * 4 * (Math.random() - 0.4);
+    angleDeg += fatigueAngleMod;
+    const forceN = BW_N * forceRatioBW * (1 + fatigue * 0.08) * (1 + (Math.random() - 0.5) * 0.05);
+    const displacementFromBaselineDeg = fatigueAngleMod + (Math.random() - 0.5) * 1.5;
+
+    const riskLevel: JointProxyData['riskLevel'] =
+      forceN > BW_N * 3.5 || Math.abs(displacementFromBaselineDeg) > 8
+        ? 'high'
+        : forceN > BW_N * 2.5 || Math.abs(displacementFromBaselineDeg) > 4
+          ? 'elevated'
+          : 'normal';
+
+    return {
+      angleProxyDeg: parseFloat(angleDeg.toFixed(1)),
+      forceProxyN: parseFloat(forceN.toFixed(1)),
+      displacementFromBaselineDeg: parseFloat(displacementFromBaselineDeg.toFixed(2)),
+      riskLevel,
+      confidence: parseFloat((signalQuality * 0.75).toFixed(3)),
+    };
+  }
+
+  /** Ankle proxy: dorsiflexion (positive) to plantarflexion (negative). */
+  private computeAnkleJoint(
+    pos: number, speedFactor: number, inclineFactor: number,
+    fatigue: number, BW_N: number, signalQuality: number,
+  ): JointProxyData {
+    let angleDeg: number;
+    let forceRatioBW: number;
+
+    if (pos < 0.12) {
+      // Heel strike: slight plantarflexion then dorsiflexing
+      angleDeg = -5 + pos / 0.12 * 10;
+      forceRatioBW = 0.5;
+    } else if (pos < 0.30) {
+      // Mid-stance: max dorsiflexion (~15°)
+      const t = (pos - 0.12) / 0.18;
+      angleDeg = 5 + t * (10 + inclineFactor * 8);
+      forceRatioBW = 1.8 + speedFactor * 0.5;
+    } else if (pos < 0.50) {
+      // Terminal stance: ankle plantarflexing for push-off
+      const t = (pos - 0.30) / 0.20;
+      angleDeg = (15 + inclineFactor * 8) * (1 - t) - t * 5;
+      forceRatioBW = 2.0 + speedFactor * 0.8;
+    } else if (pos < 0.62) {
+      // Toe-off: max plantarflexion (peak gastrocnemius)
+      angleDeg = -5 - speedFactor * 15;
+      forceRatioBW = 3.0 + speedFactor * 1.5; // gastrocnemius/soleus peak
+    } else {
+      // Swing: dorsiflexed for toe clearance
+      angleDeg = 5 + speedFactor * 5;
+      forceRatioBW = 0.1;
+    }
+
+    const fatigueAngleMod = fatigue * 3 * (Math.random() - 0.5);
+    angleDeg += fatigueAngleMod;
+    const forceN = BW_N * forceRatioBW * (1 + fatigue * 0.12) * (1 + (Math.random() - 0.5) * 0.06);
+    const displacementFromBaselineDeg = fatigueAngleMod + (Math.random() - 0.5) * 2;
+
+    const riskLevel: JointProxyData['riskLevel'] =
+      forceN > BW_N * 4.0 || Math.abs(displacementFromBaselineDeg) > 6
+        ? 'high'
+        : forceN > BW_N * 2.5 || Math.abs(displacementFromBaselineDeg) > 3
+          ? 'elevated'
+          : 'normal';
+
+    return {
+      angleProxyDeg: parseFloat(angleDeg.toFixed(1)),
+      forceProxyN: parseFloat(forceN.toFixed(1)),
+      displacementFromBaselineDeg: parseFloat(displacementFromBaselineDeg.toFixed(2)),
+      riskLevel,
+      confidence: parseFloat((signalQuality * 0.65).toFixed(3)),
+    };
+  }
+
+  /** Lower back proxy: trunk inclination angle (forward lean). */
+  private computeLowerBackJoint(
+    speedFactor: number, inclineFactor: number,
+    fatigue: number, signalQuality: number,
+  ): JointProxyData {
+    // Forward trunk lean: 5–15° at speed, increases with incline
+    const angleDeg = 5 + speedFactor * 10 + inclineFactor * 15 + fatigue * 5 + (Math.random() - 0.5) * 2;
+    const displacementFromBaselineDeg = fatigue * 4 + (Math.random() - 0.5) * 1.5;
+
+    const riskLevel: JointProxyData['riskLevel'] =
+      angleDeg > 20 || displacementFromBaselineDeg > 8
+        ? 'high'
+        : angleDeg > 15 || displacementFromBaselineDeg > 4
+          ? 'elevated'
+          : 'normal';
+
+    return {
+      angleProxyDeg: parseFloat(angleDeg.toFixed(1)),
+      forceProxyN: 0, // not modeled for lower back
+      displacementFromBaselineDeg: parseFloat(displacementFromBaselineDeg.toFixed(2)),
+      riskLevel,
+      confidence: parseFloat((signalQuality * 0.60).toFixed(3)),
+    };
+  }
+
+  private computeBilateralSymmetry(
+    lKnee: JointProxyData, rKnee: JointProxyData,
+    lHip: JointProxyData, rHip: JointProxyData,
+  ): number {
+    const kneeDiff = Math.abs(lKnee.angleProxyDeg - rKnee.angleProxyDeg);
+    const hipDiff = Math.abs(lHip.angleProxyDeg - rHip.angleProxyDeg);
+    const kneeForce = Math.abs(lKnee.forceProxyN - rKnee.forceProxyN);
+    const hipForce = Math.abs(lHip.forceProxyN - rHip.forceProxyN);
+    // Normalise differences: 0° diff = 1.0, 30° diff = 0.0
+    const angleScore = Math.max(0, 1 - (kneeDiff + hipDiff) / 60);
+    const forceScore = Math.max(0, 1 - (kneeForce + hipForce) / (2000));
+    return (angleScore * 0.6 + forceScore * 0.4);
+  }
 }
+

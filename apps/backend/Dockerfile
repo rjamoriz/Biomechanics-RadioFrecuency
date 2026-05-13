@@ -1,5 +1,5 @@
 # Build stage — use official Gradle image (no local wrapper needed)
-FROM gradle:8.5-jdk21-alpine AS build
+FROM gradle:8.13-jdk21-alpine AS build
 WORKDIR /app
 
 COPY build.gradle.kts settings.gradle.kts ./

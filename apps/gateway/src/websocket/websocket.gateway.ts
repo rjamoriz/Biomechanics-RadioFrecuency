@@ -16,6 +16,7 @@ import { TreadmillService } from '../treadmill/treadmill.service';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { SYNTHETIC_VIEW_DISCLAIMER } from '../pose/pose.types';
 import { DemoSimulatorService } from '../demo/demo-simulator.service';
+import { DemoPoseGenerator } from '../demo/demo-pose-generator';
 import { AutonomousService } from '../autonomous/autonomous.service';
 import { LocalRecorderService } from '../recording/local-recorder.service';
 import {
@@ -27,6 +28,7 @@ import {
   WsRealtimeMetrics,
   WsInferredMotionFrame,
   WsConnectionAck,
+  WsJointKinematics,
   WsAutonomousState,
   WsStationHealth,
   WsRecordingStatus,
@@ -60,6 +62,8 @@ export class LiveGateway
     private readonly recorderService: LocalRecorderService,
     @Optional() @Inject(DemoSimulatorService)
     private readonly demoSimulator?: DemoSimulatorService,
+    @Optional() @Inject(DemoPoseGenerator)
+    private readonly demoPoseGenerator?: DemoPoseGenerator,
   ) {}
 
   afterInit() {
@@ -110,6 +114,25 @@ export class LiveGateway
       };
 
       this.server.emit('inferred-motion', payload);
+    });
+
+    // Stream joint kinematics proxy estimates at ~10 Hz during running
+    this.poseService.stream$.subscribe(() => {
+      if (!this.demoPoseGenerator || !this.demoSimulator) return;
+      const state = this.demoSimulator.getSimulationState();
+      if (!state.isRunning) return;
+      const treadmill = this.treadmillService.getCurrent();
+      const signalQuality = state.signalNoiseLevel === 'clean' ? 0.9
+        : state.signalNoiseLevel === 'moderate' ? 0.65 : 0.35;
+      const kinematics = this.demoPoseGenerator.computeJointKinematics(
+        treadmill.speedKph,
+        state.weightKg,
+        treadmill.inclinePercent,
+        state.fatigueLevel,
+        signalQuality,
+      );
+      const payload: WsJointKinematics = { event: 'joint-kinematics', ...kinematics };
+      this.server.emit('joint-kinematics', payload);
     });
 
     // Stream vital signs updates at ~1 Hz

@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -8,7 +8,7 @@ COPY src/ src/
 RUN npx nest build
 
 # Runtime stage
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 RUN groupadd --system biomech && useradd --system --gid biomech --create-home biomech
 COPY --from=build /app/dist dist/

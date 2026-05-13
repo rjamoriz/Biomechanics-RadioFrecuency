@@ -1,4 +1,5 @@
 /** WebSocket event payloads sent to connected frontend clients */
+import type { JointKinematicsFrame } from '../pose/pose.types';
 
 export interface WsRealtimeMetrics {
   event: 'metrics';
@@ -61,6 +62,11 @@ export interface WsConnectionAck {
   gatewayVersion: string;
   demoMode: boolean;
   timestamp: number;
+}
+
+/** Per-joint kinematics proxy estimates emitted ~10 Hz during running */
+export interface WsJointKinematics extends JointKinematicsFrame {
+  event: 'joint-kinematics';
 }
 
 export interface WsDemoState {
